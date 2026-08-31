@@ -39,6 +39,12 @@ public class BffController {
     @Value("${services.reportes.url:http://localhost:8085}")
     private String reportesServiceUrl;
 
+    @Value("${services.usuarios.url:http://localhost:8086}")
+    private String usuariosServiceUrl;
+
+    @Value("${services.clinicas.url:http://localhost:8087}")
+    private String clinicasServiceUrl;
+
     // --- Autenticación y Validación JWT (Rutas Públicas) ---
 
     @PostMapping("/auth/validate-token")
@@ -104,6 +110,16 @@ public class BffController {
     @RequestMapping(value = "/reportes/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
     public ResponseEntity<?> proxyReportes(HttpServletRequest request, @RequestBody(required = false) Object body) {
         return forwardRequest(reportesServiceUrl, "/api/reportes", request, body);
+    }
+
+    @RequestMapping(value = "/usuarios/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+    public ResponseEntity<?> proxyUsuarios(HttpServletRequest request, @RequestBody(required = false) Object body) {
+        return forwardRequest(usuariosServiceUrl, "/api/usuarios", request, body);
+    }
+
+    @RequestMapping(value = "/clinicas/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+    public ResponseEntity<?> proxyClinicas(HttpServletRequest request, @RequestBody(required = false) Object body) {
+        return forwardRequest(clinicasServiceUrl, "/api/clinicas", request, body);
     }
 
     // --- Helper de Enrutamiento y Resiliencia ---

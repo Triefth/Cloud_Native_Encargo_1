@@ -4,7 +4,7 @@ Este proyecto corresponde a la arquitectura del backend en microservicios desaco
 
 ## Arquitectura del Backend
 
-La solución consta de **6 Microservicios independientes** desarrollados en **Java 17 / Spring Boot 3**:
+La solución consta de **8 Microservicios independientes** desarrollados en **Java 17 / Spring Boot 3**:
 
 | Microservicio | Puerto | Descripción y Responsabilidad |
 |---|---|---|
@@ -14,6 +14,8 @@ La solución consta de **6 Microservicios independientes** desarrollados en **Ja
 | `fichas-service` | `8083` | **Integración de Fichas Médicas**: Sincronización de atenciones remotas con el software de gestión de la clínica rural. |
 | `notificaciones-service` | `8084` | **Notificaciones y Recordatorios**: Envío de SMS/WhatsApp/Email anti no-show. |
 | `reportes-service` | `8085` | **Informes Operativos**: Monitoreo de latencias, caídas y métricas del sistema. |
+| `usuarios-service` | `8086` | **Maestro de Usuarios**: Fuente única de verdad para registro y consulta de Pacientes, Médicos Voluntarios y Especialidades. |
+| `clinicas-service` | `8087` | **Gestor de Clínicas Rurales**: Catálogo de clínicas afiliadas y configuración de credenciales/endpoints para integración con software de ficha clínica externo. |
 
 ---
 
@@ -88,3 +90,12 @@ docker-compose up --build
 
 ### Reportes (`/api/bff/reportes`)
 - `GET /api/bff/reportes/resumen`: Ver métricas globales, disponibilidad y latencia.
+
+### Usuarios (`/api/bff/usuarios`)
+- `GET /api/bff/usuarios/pacientes`: Catálogo maestro de pacientes.
+- `GET /api/bff/usuarios/medicos`: Catálogo maestro de médicos voluntarios.
+- `GET /api/bff/usuarios/medicos/especialidad/{especialidad}`: Médicos por especialidad.
+
+### Clínicas Rurales (`/api/bff/clinicas`)
+- `GET /api/bff/clinicas`: Catálogo de clínicas rurales afiliadas.
+- `PUT /api/bff/clinicas/{id}/configuracion-ehr`: Actualizar credenciales y endpoint API de la ficha clínica de la clínica rural.

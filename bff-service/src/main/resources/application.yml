@@ -25,6 +25,10 @@ services:
     url: ${NOTIFICACIONES_SERVICE_URL:http://localhost:8084}
   reportes:
     url: ${REPORTES_SERVICE_URL:http://localhost:8085}
+  usuarios:
+    url: ${USUARIOS_SERVICE_URL:http://localhost:8086}
+  clinicas:
+    url: ${CLINICAS_SERVICE_URL:http://localhost:8087}
 
 management:
   endpoints:

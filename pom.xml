@@ -19,5 +19,7 @@
         <module>fichas-service</module>
         <module>notificaciones-service</module>
         <module>reportes-service</module>
+        <module>usuarios-service</module>
+        <module>clinicas-service</module>
     </modules>
 </project>
