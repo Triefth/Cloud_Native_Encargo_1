@@ -1,0 +1,33 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: bff-service
+
+# Configuración de Seguridad e IDaaS (Azure AD / Entra ID)
+security:
+  jwt:
+    issuer: ${JWT_ISSUER:https://login.microsoftonline.com/common/v2.0}
+    audience: ${JWT_AUDIENCE:api://telemedicina-rural-api}
+    secret: ${JWT_SECRET:SuperSecretKeyForDevelopmentTestingTelemedicinaRural2025DUOCUC!}
+    dev-mode-enabled: ${JWT_DEV_MODE:true}
+
+# Configuración de Microservicios Backend Desacoplados
+services:
+  citas:
+    url: ${CITAS_SERVICE_URL:http://localhost:8081}
+  consultas:
+    url: ${CONSULTAS_SERVICE_URL:http://localhost:8082}
+  fichas:
+    url: ${FICHAS_SERVICE_URL:http://localhost:8083}
+  notificaciones:
+    url: ${NOTIFICACIONES_SERVICE_URL:http://localhost:8084}
+  reportes:
+    url: ${REPORTES_SERVICE_URL:http://localhost:8085}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics

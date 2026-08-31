@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  bff-service:
+    build: ./bff-service
+    ports:
+      - "8080:8080"
+    environment:
+      - CITAS_SERVICE_URL=http://citas-service:8081
+      - CONSULTAS_SERVICE_URL=http://consultas-service:8082
+      - FICHAS_SERVICE_URL=http://fichas-service:8083
+      - NOTIFICACIONES_SERVICE_URL=http://notificaciones-service:8084
+      - REPORTES_SERVICE_URL=http://reportes-service:8085
+    depends_on:
+      - citas-service
+      - consultas-service
+      - fichas-service
+      - notificaciones-service
+      - reportes-service
+
+  citas-service:
+    build: ./citas-service
+    ports:
+      - "8081:8081"
+
+  consultas-service:
+    build: ./consultas-service
+    ports:
+      - "8082:8082"
+
+  fichas-service:
+    build: ./fichas-service
+    ports:
+      - "8083:8083"
+
+  notificaciones-service:
+    build: ./notificaciones-service
+    ports:
+      - "8084:8084"
+
+  reportes-service:
+    build: ./reportes-service
+    ports:
+      - "8085:8085"
