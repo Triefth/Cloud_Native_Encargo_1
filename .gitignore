@@ -1,29 +1,30 @@
-# Target build directory
+# Local .terraform directories
+.terraform/
+
+# Ignorar archivos de estado (contienen información confidencial o sensible)
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfplan
+
+# Variables con datos sensibles (contraseñas, llaves privadas, etc.)
+*.tfvars
+*.tfvars.json
+
+# Override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# CLI configuration files
+.terraformrc
+terraform.rc
+
+# --- Nuevas reglas basadas en tus servicios y seguridad ---
+
+# Ignorar carpetas de compilación de Java/Maven en todos los microservicios
 **/target/
-*.jar
-*.war
-*.nar
-*.ear
-*.zip
-*.tar.gz
-*.rar
 
-# IDE & Editor files
-.idea/
-*.iml
-*.iws
-*.ipr
-.classpath
-.project
-.settings/
-.vscode/
-*.swp
-*.swo
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Log files
-*.log
-**/logs/
+# Ignorar llaves privadas (CRÍTICO)
+*.pem

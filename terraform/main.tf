@@ -29,10 +29,16 @@ resource "aws_security_group" "ec2_sg" {
 
 # Instancia EC2
 resource "aws_instance" "backend_server" {
-  ami             = "ami-0c7217cdde317cfec" # Ubuntu Server 22.04 LTS (us-east-1)
+  ami             = "ami-0c7217cdde317cfec" 
   instance_type   = var.instance_type
   key_name        = var.key_name
   security_groups = [aws_security_group.ec2_sg.name]
+
+  # Bloque nuevo para expandir el disco a 25 GB
+  root_block_device {
+    volume_size = 25
+    volume_type = "gp3"
+  }
 
   tags = {
     Name = "Pedidos360-Backend"
