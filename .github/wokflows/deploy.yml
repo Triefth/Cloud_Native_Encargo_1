@@ -1,0 +1,92 @@
+name: Build & Deploy Backend Pedidos360
+
+on:
+  push:
+    branches:
+      - main # Ejecuta al hacer merge o push a main
+
+jobs:
+  build:
+    name: Construir Microservicios Spring Boot
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v3
+
+      - name: Configurar JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Compilar todos los microservicios
+        run: |
+          # Iterar sobre las carpetas de los servicios y empaquetar en JAR
+          for service in bff-service citas-service clinicas-service consultas-service fichas-service notificaciones-service reportes-service usuarios-service; do
+            echo "Compilando $service..."
+            mvn -f $service/pom.xml clean package -DskipTests
+          done
+
+      - name: Guardar artefactos JAR
+        uses: actions/upload-artifact@v3
+        with:
+          name: backend-jars
+          path: "*/target/*.jar"
+
+  terraform:
+    name: Desplegar Infraestructura en AWS (Terraform)
+    runs-on: ubuntu-latest
+    needs: build
+    defaults:
+      run:
+        working-directory: ./terraform
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          TF_VAR_key_name: ${{ secrets.AWS_KEY_NAME }}
+        run: terraform apply -auto-approve
+
+  deploy:
+    name: Desplegar a Instancia EC2
+    runs-on: ubuntu-latest
+    needs: terraform
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Descargar artefactos JAR
+        uses: actions/download-artifact@v3
+        with:
+          name: backend-jars
+
+      - name: Transferir archivos a EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.EC2_HOST_IP }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "., docker-compose.yml"
+          target: "/home/ubuntu/app"
+
+      - name: Iniciar servicios con Docker Compose
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST_IP }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /home/ubuntu/app
+            # Levanta los contenedores basados en el docker-compose.yml subido
+            sudo docker-compose down
+            sudo docker-compose build
+            sudo docker-compose up -d
