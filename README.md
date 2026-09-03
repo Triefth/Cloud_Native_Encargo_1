@@ -52,20 +52,23 @@ Para probar los endpoints protegidos sin necesidad de un tenant Azure AD activo,
 
 ## Cómo Ejecutar el Proyecto
 
-### Opción 1: Ejecutar cada Microservicio por separado (Maven)
-En la carpeta de cada microservicio ejecutar:
+### 1. Ejecutar el Backend (8 Microservicios + BFF Gateway)
+Navegar a la carpeta `backend`:
 ```bash
-./mvnw spring-boot:run
+cd backend
+docker compose up --build
 ```
-O con Maven instalado:
-```bash
-mvn spring-boot:run
-```
+*O ejecutando Maven de forma individual en cada carpeta dentro de `backend/`.*
 
-### Opción 2: Levantar con Docker Compose
+### 2. Ejecutar el Frontend Web (React + Vite)
+Navegar a la carpeta `frontend`:
 ```bash
-docker-compose up --build
+cd frontend
+npm install
+npm run dev
 ```
+La aplicación se abrirá en `http://localhost:5173` y se conectará automáticamente con el BFF Gateway en `http://localhost:8080`.
+
 
 ---
 
