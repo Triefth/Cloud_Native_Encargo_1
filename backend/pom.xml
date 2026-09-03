@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>cl.duoc.telemedicina</groupId>
+    <artifactId>telemedicina-rural-parent</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+
+    <name>Telemedicina Rural - Backend Microservices Parent</name>
+    <description>Proyecto Multimódulo para la Evaluación Parcial N°1 (DSY1107)</description>
+
+    <modules>
+        <module>bff-service</module>
+        <module>citas-service</module>
+        <module>consultas-service</module>
+        <module>fichas-service</module>
+        <module>notificaciones-service</module>
+        <module>reportes-service</module>
+        <module>usuarios-service</module>
+        <module>clinicas-service</module>
+    </modules>
+</project>
