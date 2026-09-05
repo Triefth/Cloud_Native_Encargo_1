@@ -12,6 +12,9 @@ security:
     audience: ${JWT_AUDIENCE:api://telemedicina-rural-api}
     secret: ${JWT_SECRET:SuperSecretKeyForDevelopmentTestingTelemedicinaRural2025DUOCUC!}
     dev-mode-enabled: ${JWT_DEV_MODE:true}
+  dev-login:
+    email: ${DEV_LOGIN_EMAIL:medico.rural@telemedicina.cl}
+    password: ${DEV_LOGIN_PASSWORD:telemedicina2025}
 
 # Configuración de Microservicios Backend Desacoplados
 services:

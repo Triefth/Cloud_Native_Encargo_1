@@ -55,6 +55,11 @@ export const apiRequest = async (endpoint, options = {}) => {
 
 // Authentication Services
 export const authApi = {
+  login: (email, password) =>
+    apiRequest('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
   getDevToken: (user = 'medico.rural@telemedicina.cl', role = 'MEDICO') =>
     apiRequest(`/auth/dev-token?user=${encodeURIComponent(user)}&role=${encodeURIComponent(role)}`),
   validateToken: (token) =>

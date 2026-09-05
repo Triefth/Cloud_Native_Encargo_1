@@ -9,10 +9,11 @@ import {
   Building2, 
   BarChart3, 
   ShieldCheck, 
-  Stethoscope 
+  Stethoscope,
+  LogOut
 } from 'lucide-react';
 
-export default function Navbar({ activeTab, setActiveTab, bffStatus, activeToken }) {
+export default function Navbar({ activeTab, setActiveTab, bffStatus, activeToken, onLogout }) {
   const navItems = [
     { id: 'health', label: 'Resiliencia & Salud', icon: Activity },
     { id: 'jwt', label: 'Dev JWT MSAL', icon: ShieldCheck },
@@ -64,6 +65,11 @@ export default function Navbar({ activeTab, setActiveTab, bffStatus, activeToken
             <ShieldCheck size={14} />
             {activeToken ? 'Token JWT Activo' : 'Sin Token JWT'}
           </div>
+
+          <button className="btn btn-secondary btn-sm" onClick={onLogout} title="Cerrar sesión">
+            <LogOut size={15} />
+            Salir
+          </button>
         </div>
       </div>
 

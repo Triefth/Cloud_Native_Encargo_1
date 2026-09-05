@@ -45,7 +45,40 @@ public class BffController {
     @Value("${services.clinicas.url:http://localhost:8087}")
     private String clinicasServiceUrl;
 
+    @Value("${security.dev-login.email:medico.rural@telemedicina.cl}")
+    private String devLoginEmail;
+
+    @Value("${security.dev-login.password:telemedicina2025}")
+    private String devLoginPassword;
+
     // --- Autenticación y Validación JWT (Rutas Públicas) ---
+
+    @PostMapping("/auth/login")
+    public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {
+        String email = credentials.get("email");
+        String password = credentials.get("password");
+
+        if (email == null || password == null || email.isBlank() || password.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "El correo y la contraseña son obligatorios"
+            ));
+        }
+
+        if (!devLoginEmail.equalsIgnoreCase(email.trim()) || !devLoginPassword.equals(password)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                    "error", "Credenciales inválidas",
+                    "message", "El correo o la contraseña no son correctos"
+            ));
+        }
+
+        String token = jwtTokenValidator.generateDevToken(devLoginEmail, "MEDICO");
+        return ResponseEntity.ok(Map.of(
+                "token", token,
+                "token_type", "Bearer",
+                "user", devLoginEmail,
+                "role", "MEDICO"
+        ));
+    }
 
     @PostMapping("/auth/validate-token")
     public ResponseEntity<?> validateToken(@RequestBody Map<String, String> payload) {

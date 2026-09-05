@@ -40,6 +40,13 @@ Para probar los endpoints protegidos sin necesidad de un tenant Azure AD activo,
 
 - **GET** `http://localhost:8080/api/bff/auth/dev-token?user=medico@rural.cl&role=MEDICO`
 
+### Login de Desarrollo
+Para acceder desde el frontend se utiliza correo y contraseña contra el BFF:
+
+- **POST** `http://localhost:8080/api/bff/auth/login`
+- Credenciales predeterminadas: `medico.rural@telemedicina.cl` / `telemedicina2025`
+- Se pueden cambiar mediante las variables `DEV_LOGIN_EMAIL` y `DEV_LOGIN_PASSWORD`.
+
 ### Endpoint para Validar Token
 - **POST** `http://localhost:8080/api/bff/auth/validate-token`
   ```json

@@ -9,7 +9,8 @@ import UsuariosManager from './components/UsuariosManager';
 import NotificacionesManager from './components/NotificacionesManager';
 import ClinicasManager from './components/ClinicasManager';
 import ReportesDashboard from './components/ReportesDashboard';
-import { getAuthToken, authApi } from './services/api';
+import Login from './components/Login';
+import { getAuthToken, setAuthToken, authApi } from './services/api';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('health');
@@ -33,6 +34,10 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  if (!activeToken) {
+    return <Login onLogin={setActiveToken} />;
+  }
+
   return (
     <div className="app-container">
       <Navbar 
@@ -40,6 +45,10 @@ export default function App() {
         setActiveTab={setActiveTab} 
         bffStatus={bffStatus} 
         activeToken={activeToken} 
+          onLogout={() => {
+            setAuthToken('');
+            setActiveToken('');
+          }} 
       />
 
       <main className="main-content">
