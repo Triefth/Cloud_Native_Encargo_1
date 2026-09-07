@@ -23,7 +23,7 @@ resource "aws_api_gateway_integration" "ec2_integration" {
   http_method             = aws_api_gateway_method.proxy_method.http_method
   integration_http_method = "ANY"
   type                    = "HTTP_PROXY"
-  uri                     = "http://${aws_instance.backend_server.public_ip}:8080/{proxy}"
+  uri                     = "http://${aws_eip.backend_eip.public_ip}:8080/{proxy}"
 }
 
 resource "aws_api_gateway_deployment" "api_deployment" {

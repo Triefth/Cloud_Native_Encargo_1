@@ -7,8 +7,3 @@ variable "instance_type" {
   description = "Tipo de instancia EC2"
   default     = "t2.medium" 
 }
-
-variable "key_name" {
-  description = "Nombre de la llave SSH de AWS (Key Pair)"
-  type        = string
-}
