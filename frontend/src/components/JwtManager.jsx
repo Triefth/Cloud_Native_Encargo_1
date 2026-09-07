@@ -10,22 +10,8 @@ export default function JwtManager({ activeToken, setActiveToken }) {
   const [copied, setCopied] = useState(false);
   const [message, setMessage] = useState('');
 
-  const handleGenerateToken = async () => {
-    setLoading(true);
-    setMessage('');
-    const res = await authApi.getDevToken(user, role);
-    setLoading(false);
-
-    if (res.error) {
-      setMessage(`Error: ${res.message}`);
-      return;
-    }
-
-    const token = res.data.token;
-    setAuthToken(token);
-    setActiveToken(token);
-    setMessage('¡Token Dev JWT generado y guardado en localStorage!');
-    handleValidate(token);
+  const handleGenerateToken = () => {
+    setMessage('El token ahora se obtiene exclusivamente mediante Microsoft Entra ID. Usa Iniciar sesión en la barra superior.');
   };
 
   const handleValidate = async (tokenToTest = activeToken) => {
@@ -75,9 +61,9 @@ export default function JwtManager({ activeToken, setActiveToken }) {
       <div className="grid-2">
         {/* Generador de Token Dev */}
         <div className="glass-card">
-          <h3 style={{ fontSize: '1.1rem', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h3 style={{ fontSize: '1.1rem', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Key size={20} style={{ color: 'var(--accent-blue)' }} />
-            Generador de Token Dev
+            Acceso Microsoft Entra ID
           </h3>
 
           <div className="form-group">
@@ -107,7 +93,7 @@ export default function JwtManager({ activeToken, setActiveToken }) {
           <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
             <button className="btn btn-primary" onClick={handleGenerateToken} disabled={loading}>
               <RefreshCw size={16} className={loading ? 'pulsing' : ''} />
-              {loading ? 'Generando...' : 'Generar Token JWT'}
+              {loading ? 'Procesando...' : 'Obtener token real'}
             </button>
 
             {activeToken && (
@@ -163,7 +149,7 @@ export default function JwtManager({ activeToken, setActiveToken }) {
                       {validationResult.valid ? 'VÁLIDO' : 'INVÁLIDO'}
                     </span>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                      Firma HMAC-SHA256 Verificada
+                      Firma JWT verificada por API Gateway y BFF
                     </span>
                   </div>
 
@@ -177,7 +163,7 @@ export default function JwtManager({ activeToken, setActiveToken }) {
             <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)' }}>
               <AlertTriangle size={36} style={{ marginBottom: '10px', opacity: 0.6 }} />
               <p style={{ fontSize: '0.9rem' }}>No hay un token JWT activo en la sesión.</p>
-              <p style={{ fontSize: '0.8rem', marginTop: '4px' }}>Haz clic en "Generar Token JWT" para simular un token de Azure AD.</p>
+              <p style={{ fontSize: '0.8rem', marginTop: '4px' }}>Usa "Iniciar sesión" para obtener un token real de Microsoft Entra ID.</p>
             </div>
           )}
         </div>

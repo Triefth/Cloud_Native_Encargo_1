@@ -1,8 +1,7 @@
 package cl.duoc.telemedicina.bff.controller;
 
-import cl.duoc.telemedicina.bff.security.JwtTokenValidator;
-import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.security.core.Authentication;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -12,14 +11,12 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/bff")
 public class BffController {
-
-    @Autowired
-    private JwtTokenValidator jwtTokenValidator;
 
     @Autowired
     private RestTemplate restTemplate;
@@ -45,43 +42,22 @@ public class BffController {
     @Value("${services.clinicas.url:http://localhost:8087}")
     private String clinicasServiceUrl;
 
-    // --- Autenticación y Validación JWT (Rutas Públicas) ---
+    // --- Estado del BFF (ruta publica; los endpoints de negocio requieren JWT) ---
 
-    @PostMapping("/auth/validate-token")
-    public ResponseEntity<?> validateToken(@RequestBody Map<String, String> payload) {
-        String token = payload.get("token");
-        if (token == null || token.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Se requiere el token JWT"));
-        }
-        boolean isValid = jwtTokenValidator.validateToken(token);
-        if (!isValid) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
-                    "valid", false,
-                    "message", "Token inválido, expirado o con firma incorrecta"
-            ));
-        }
-
-        Claims claims = jwtTokenValidator.getClaimsFromToken(token);
-        Map<String, Object> response = new HashMap<>();
-        response.put("valid", true);
-        response.put("username", jwtTokenValidator.getUsernameFromToken(token));
-        response.put("issuer", claims.getIssuer());
-        response.put("audience", claims.getAudience());
-        response.put("expiration", claims.getExpiration());
-        response.put("roles", jwtTokenValidator.getAuthoritiesFromToken(token));
-
-        return ResponseEntity.ok(response);
+    @GetMapping("/auth/status")
+    public ResponseEntity<?> authStatus() {
+        return ResponseEntity.ok(Map.of(
+                "status", "ok",
+                "authentication", "Microsoft Entra ID / Spring OAuth2 Resource Server"
+        ));
     }
 
-    @GetMapping("/auth/dev-token")
-    public ResponseEntity<?> getDevToken(@RequestParam(defaultValue = "medico.rural@telemedicina.cl") String user,
-                                        @RequestParam(defaultValue = "MEDICO") String role) {
-        String token = jwtTokenValidator.generateDevToken(user, role);
+    @GetMapping("/auth/me")
+    public ResponseEntity<?> authMe(Authentication authentication) {
         return ResponseEntity.ok(Map.of(
-                "token", token,
-                "token_type", "Bearer",
-                "user", user,
-                "role", role
+                "valid", authentication != null && authentication.isAuthenticated(),
+                "principal", authentication == null ? "" : authentication.getName(),
+                "authorities", authentication == null ? List.of() : authentication.getAuthorities()
         ));
     }
 
