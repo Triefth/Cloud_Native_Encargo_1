@@ -6,6 +6,9 @@ services:
     ports:
       - "8080:8080"
     environment:
+      - AZURE_ISSUER=${AZURE_ISSUER}
+      - AZURE_AUDIENCE=${AZURE_AUDIENCE:-api://telemedicina-rural-api}
+      - FRONTEND_ORIGIN=${FRONTEND_ORIGIN:-http://localhost:5173}
       - CITAS_SERVICE_URL=http://citas-service:8081
       - CONSULTAS_SERVICE_URL=http://consultas-service:8082
       - FICHAS_SERVICE_URL=http://fichas-service:8083

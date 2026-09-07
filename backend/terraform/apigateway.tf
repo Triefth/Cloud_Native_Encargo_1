@@ -1,38 +1,48 @@
-resource "aws_api_gateway_rest_api" "telemedicina_api" {
-  name        = "Telemedicina-API"
-  description = "API Gateway para redirigir peticiones al BFF de Telemedicina"
+resource "aws_apigatewayv2_api" "telemedicina_api" {
+  name          = "Telemedicina-API"
+  protocol_type = "HTTP"
+
+  cors_configuration {
+    allow_headers = ["Authorization", "Content-Type", "X-Requested-With", "Accept"]
+    allow_methods = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
+    allow_origins = [var.frontend_redirect_uri]
+    max_age       = 3600
+  }
 }
 
-resource "aws_api_gateway_resource" "proxy_resource" {
-  rest_api_id = aws_api_gateway_rest_api.telemedicina_api.id
-  parent_id   = aws_api_gateway_rest_api.telemedicina_api.root_resource_id
-  path_part   = "{proxy+}"
+resource "aws_apigatewayv2_authorizer" "entra_jwt" {
+  api_id           = aws_apigatewayv2_api.telemedicina_api.id
+  authorizer_type  = "JWT"
+  identity_sources = ["$request.header.Authorization"]
+  name             = "entra-id-jwt"
+
+  jwt_configuration {
+    audience = [azuread_application.backend.client_id]
+    issuer   = var.azure_issuer
+  }
 }
 
-resource "aws_api_gateway_method" "proxy_method" {
-  rest_api_id   = aws_api_gateway_rest_api.telemedicina_api.id
-  resource_id   = aws_api_gateway_resource.proxy_resource.id
-  http_method   = "ANY"
-  authorization = "NONE" # La validación JWT (MSAL) se hace en el backend/BFF
+resource "aws_apigatewayv2_integration" "ec2_integration" {
+  api_id                 = aws_apigatewayv2_api.telemedicina_api.id
+  integration_type       = "HTTP_PROXY"
+  integration_method     = "ANY"
+  integration_uri        = "http://${aws_eip.backend_eip.public_ip}:8080/{proxy}"
+  payload_format_version = "1.0"
+  request_parameters = {
+    "overwrite:path" = "/$request.path.proxy"
+  }
 }
 
-# Integración con EC2
-resource "aws_api_gateway_integration" "ec2_integration" {
-  rest_api_id             = aws_api_gateway_rest_api.telemedicina_api.id
-  resource_id             = aws_api_gateway_resource.proxy_resource.id
-  http_method             = aws_api_gateway_method.proxy_method.http_method
-  integration_http_method = "ANY"
-  type                    = "HTTP_PROXY"
-  uri                     = "http://${aws_instance.backend_server.public_ip}:8080/{proxy}"
+resource "aws_apigatewayv2_route" "proxy_route" {
+  api_id             = aws_apigatewayv2_api.telemedicina_api.id
+  route_key          = "ANY /{proxy+}"
+  target             = "integrations/${aws_apigatewayv2_integration.ec2_integration.id}"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.entra_jwt.id
 }
 
-resource "aws_api_gateway_deployment" "api_deployment" {
-  depends_on  = [aws_api_gateway_integration.ec2_integration]
-  rest_api_id = aws_api_gateway_rest_api.telemedicina_api.id
-}
-
-resource "aws_api_gateway_stage" "api_stage" {
-  deployment_id = aws_api_gateway_deployment.api_deployment.id
-  rest_api_id   = aws_api_gateway_rest_api.telemedicina_api.id
-  stage_name    = "prod"
+resource "aws_apigatewayv2_stage" "api_stage" {
+  api_id      = aws_apigatewayv2_api.telemedicina_api.id
+  name        = "$default"
+  auto_deploy = true
 }
