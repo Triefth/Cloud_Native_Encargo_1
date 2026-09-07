@@ -11,5 +11,20 @@ output "ec2_ssh_private_key" {
 
 output "api_gateway_invoke_url" {
   description = "URL base del API Gateway (para configurar en Angular)"
-  value       = aws_api_gateway_stage.api_stage.invoke_url
+  value       = aws_apigatewayv2_stage.api_stage.invoke_url
+}
+
+output "azure_backend_client_id" {
+  description = "Client ID de la API backend registrada en Microsoft Entra"
+  value       = azuread_application.backend.client_id
+}
+
+output "azure_frontend_client_id" {
+  description = "Client ID de la SPA registrada en Microsoft Entra"
+  value       = azuread_application.frontend.client_id
+}
+
+output "azure_backend_scope_read" {
+  description = "Scope read completo para MSAL"
+  value       = "${var.backend_api_identifier_uri}/read"
 }

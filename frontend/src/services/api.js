@@ -55,13 +55,8 @@ export const apiRequest = async (endpoint, options = {}) => {
 
 // Authentication Services
 export const authApi = {
-  getDevToken: (user = 'medico.rural@telemedicina.cl', role = 'MEDICO') =>
-    apiRequest(`/auth/dev-token?user=${encodeURIComponent(user)}&role=${encodeURIComponent(role)}`),
-  validateToken: (token) =>
-    apiRequest('/auth/validate-token', {
-      method: 'POST',
-      body: JSON.stringify({ token }),
-    }),
+  status: () => apiRequest('/auth/status'),
+  validateToken: () => apiRequest('/auth/me'),
 };
 
 // Citas Service

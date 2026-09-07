@@ -10,15 +10,40 @@ import NotificacionesManager from './components/NotificacionesManager';
 import ClinicasManager from './components/ClinicasManager';
 import ReportesDashboard from './components/ReportesDashboard';
 import { getAuthToken, authApi } from './services/api';
+import { initializeAuth, login, logout } from './services/auth';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('health');
   const [bffStatus, setBffStatus] = useState('offline');
   const [activeToken, setActiveToken] = useState(getAuthToken());
+  const [authReady, setAuthReady] = useState(false);
+
+  useEffect(() => {
+    initializeAuth()
+      .then((token) => {
+        if (token) {
+          localStorage.setItem('bff_jwt_token', token);
+          setActiveToken(token);
+        }
+      })
+      .finally(() => setAuthReady(true));
+  }, []);
+
+  const handleLogin = async () => {
+    const token = await login();
+    localStorage.setItem('bff_jwt_token', token);
+    setActiveToken(token);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    localStorage.removeItem('bff_jwt_token');
+    setActiveToken('');
+  };
 
   // Ping BFF gateway health
   const checkBffHealth = async () => {
-    const res = await authApi.validateToken('ping');
+    const res = await authApi.status();
     // If BFF responds (even with valid=false for dummy token), it's online
     if (res.status !== 503 && res.status !== 0) {
       setBffStatus('online');
@@ -40,6 +65,9 @@ export default function App() {
         setActiveTab={setActiveTab} 
         bffStatus={bffStatus} 
         activeToken={activeToken} 
+          authReady={authReady}
+          onLogin={handleLogin}
+          onLogout={handleLogout}
       />
 
       <main className="main-content">

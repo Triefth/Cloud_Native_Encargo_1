@@ -10,6 +10,10 @@ terraform {
       source  = "hashicorp/tls"
       version = "~> 4.0"
     }
+    azuread = {
+      source  = "hashicorp/azuread"
+      version = "~> 3.0"
+    }
   }
 
   # Los valores reales (bucket, key, region, dynamodb_table) se pasan desde
@@ -21,4 +25,8 @@ terraform {
 
 provider "aws" {
   region = var.aws_region
+}
+
+provider "azuread" {
+  tenant_id = var.azure_tenant_id
 }

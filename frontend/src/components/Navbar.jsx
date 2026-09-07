@@ -12,7 +12,7 @@ import {
   Stethoscope 
 } from 'lucide-react';
 
-export default function Navbar({ activeTab, setActiveTab, bffStatus, activeToken }) {
+export default function Navbar({ activeTab, setActiveTab, bffStatus, activeToken, authReady, onLogin, onLogout }) {
   const navItems = [
     { id: 'health', label: 'Resiliencia & Salud', icon: Activity },
     { id: 'jwt', label: 'Dev JWT MSAL', icon: ShieldCheck },
@@ -64,6 +64,12 @@ export default function Navbar({ activeTab, setActiveTab, bffStatus, activeToken
             <ShieldCheck size={14} />
             {activeToken ? 'Token JWT Activo' : 'Sin Token JWT'}
           </div>
+
+          {activeToken ? (
+            <button className="btn btn-secondary btn-sm" onClick={onLogout}>Cerrar sesión</button>
+          ) : (
+            <button className="btn btn-primary btn-sm" onClick={onLogin} disabled={!authReady}>Iniciar sesión</button>
+          )}
         </div>
       </div>
 

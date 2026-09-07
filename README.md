@@ -8,7 +8,7 @@ La solución consta de **8 Microservicios independientes** desarrollados en **Ja
 
 | Microservicio | Puerto | Descripción y Responsabilidad |
 |---|---|---|
-| `bff-service` | `8080` | **BFF / API Gateway**: Validación de tokens JWT (Azure AD / MSAL), emisor, audiencia, firma, expiración y roles. Enrutamiento resiliéte. |
+| `bff-service` | `8080` | **BFF**: Resource Server Spring Security con validación JWKS de Microsoft Entra y enrutamiento resiliente. |
 | `citas-service` | `8081` | **Agenda de Citas**: Programación, confirmación, cancelación y reprogramación de atenciones remotas. |
 | `consultas-service` | `8082` | **Consultas en Línea**: Salas de videollamadas HIPAA CPaaS, registro de atención médica. |
 | `fichas-service` | `8083` | **Integración de Fichas Médicas**: Sincronización de atenciones remotas con el software de gestión de la clínica rural. |
@@ -27,26 +27,20 @@ Cada microservicio cuenta con su propia aplicación Spring Boot, su propio puert
 
 ---
 
-## Autenticación y Validación JWT (Azure AD / MSAL)
+## Autenticación y Validación JWT (Microsoft Entra / MSAL)
 
-El microservicio `bff-service` valida las peticiones mediante el filtro `JwtValidationFilter`:
-- **Emisor (`iss`):** Verifica que el emisor corresponda al tenant de Azure AD.
-- **Audiencia (`aud`):** Verifica que el token esté destinado a la API.
-- **Vigencia (`exp`):** Comprueba que el token no haya expirado.
-- **Firma & Claims:** Extrae el usuario y los roles (`roles`/`scp`) para autorizar la petición.
+Terraform crea la aplicación de la API, la SPA, los scopes `read`/`write`, sus service principals y el consentimiento delegado. AWS API Gateway valida primero el JWT mediante un Authorizer nativo de HTTP API; el `bff-service` vuelve a validarlo como Resource Server Spring Security usando el `issuer-uri`, JWKS, audiencia y expiración reales.
 
-### Endpoint para Generar Token de Prueba (Modo Dev)
-Para probar los endpoints protegidos sin necesidad de un tenant Azure AD activo, se proporciona un endpoint público de generación de tokens:
+La única operación fuera de Terraform es crear el Tenant de Entra. El principal usado por CI debe existir una sola vez y tener permisos suficientes para administrar App Registrations y consentimientos. No se guardan secretos en el repositorio.
 
-- **GET** `http://localhost:8080/api/bff/auth/dev-token?user=medico@rural.cl&role=MEDICO`
+Endpoints públicos y protegidos:
+- **GET** `/api/bff/auth/status`: estado del BFF.
+- **GET** `/api/bff/auth/me`: claims del usuario autenticado; requiere `Authorization: Bearer <access-token>`.
+- Todas las rutas de negocio requieren un access token emitido para la API.
 
-### Endpoint para Validar Token
-- **POST** `http://localhost:8080/api/bff/auth/validate-token`
-  ```json
-  {
-    "token": "eyJhbGciOiJIUzI1NiJ9..."
-  }
-  ```
+### Variables necesarias
+
+En Terraform se deben proporcionar `azure_tenant_id` y `azure_issuer`. En la SPA se usan `VITE_AZURE_CLIENT_ID`, `VITE_AZURE_TENANT_ID`, `VITE_AZURE_API_SCOPE` y `VITE_AZURE_REDIRECT_URI`; para External ID/User Flow define también `VITE_AZURE_AUTHORITY` con la autoridad CIAM exacta. En CI, configura `AZUREAD_CLIENT_ID`, `AZUREAD_CLIENT_SECRET`, `AZURE_TENANT_ID`, `AZURE_ISSUER`, `AZURE_AUDIENCE` y `FRONTEND_REDIRECT_URI` como secretos.
 
 ---
 

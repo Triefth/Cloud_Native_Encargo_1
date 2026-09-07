@@ -4,14 +4,16 @@ server:
 spring:
   application:
     name: bff-service
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${AZURE_ISSUER:https://login.microsoftonline.com/common/v2.0}
+          audiences: ${AZURE_AUDIENCE:api://telemedicina-rural-api}
 
-# Configuración de Seguridad e IDaaS (Azure AD / Entra ID)
 security:
-  jwt:
-    issuer: ${JWT_ISSUER:https://login.microsoftonline.com/common/v2.0}
-    audience: ${JWT_AUDIENCE:api://telemedicina-rural-api}
-    secret: ${JWT_SECRET:SuperSecretKeyForDevelopmentTestingTelemedicinaRural2025DUOCUC!}
-    dev-mode-enabled: ${JWT_DEV_MODE:true}
+  cors:
+    allowed-origin: ${FRONTEND_ORIGIN:http://localhost:5173}
 
 # Configuración de Microservicios Backend Desacoplados
 services:
