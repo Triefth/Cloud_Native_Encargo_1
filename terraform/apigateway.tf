@@ -5,7 +5,7 @@ resource "aws_apigatewayv2_api" "telemedicina_api" {
   cors_configuration {
     allow_headers = ["Authorization", "Content-Type", "X-Requested-With", "Accept"]
     allow_methods = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
-    allow_origins = [var.frontend_redirect_uri]
+    allow_origins = [var.frontend_redirect_uri, "http://${aws_eip.frontend_eip.public_ip}"]
     max_age       = 3600
   }
 }

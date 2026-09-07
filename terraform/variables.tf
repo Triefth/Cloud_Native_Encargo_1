@@ -3,9 +3,19 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+variable "backend_instance_type" {
+  description = "Tipo de instancia EC2 para el Backend (Microservicios + BFF)"
+  default     = "t2.medium"
+}
+
+variable "frontend_instance_type" {
+  description = "Tipo de instancia EC2 para el Frontend (SPA React/Vite/Nginx)"
+  default     = "t2.micro"
+}
+
 variable "instance_type" {
-  description = "Tipo de instancia EC2"
-  default     = "t2.medium" 
+  description = "Tipo de instancia EC2 por defecto"
+  default     = "t2.medium"
 }
 
 variable "azure_tenant_id" {

@@ -58,7 +58,7 @@ resource "azuread_service_principal" "frontend" {
 }
 
 resource "azuread_service_principal_delegated_permission_grant" "frontend_backend" {
-  service_principal_id         = azuread_service_principal.frontend.object_id
-  resource_service_principal_id = azuread_service_principal.backend.object_id
-  claim_values                 = ["read", "write"]
+  service_principal_object_id          = azuread_service_principal.frontend.object_id
+  resource_service_principal_object_id = azuread_service_principal.backend.object_id
+  claim_values                         = ["read", "write"]
 }

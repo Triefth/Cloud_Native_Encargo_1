@@ -1,5 +1,20 @@
+output "backend_public_ip" {
+  description = "IP Publica fija (Elastic IP) de la instancia EC2 de Backend"
+  value       = aws_eip.backend_eip.public_ip
+}
+
+output "frontend_public_ip" {
+  description = "IP Publica fija (Elastic IP) de la instancia EC2 de Frontend"
+  value       = aws_eip.frontend_eip.public_ip
+}
+
+output "frontend_url" {
+  description = "URL de acceso al portal web de Frontend"
+  value       = "http://${aws_eip.frontend_eip.public_ip}"
+}
+
 output "ec2_public_ip" {
-  description = "IP Publica fija (Elastic IP) de la instancia EC2"
+  description = "IP Publica fija (Elastic IP) de la instancia EC2 Backend (legacy alias)"
   value       = aws_eip.backend_eip.public_ip
 }
 
