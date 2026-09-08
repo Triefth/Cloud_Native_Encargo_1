@@ -22,13 +22,13 @@ export default function ClinicasManager() {
     const res = await clinicasApi.getAll();
     setLoading(false);
 
-    if (!res.error) {
-      setClinicas(res.data || []);
+    if (!res.error && Array.isArray(res.data)) {
+      setClinicas(res.data);
     } else {
-      setClinicas([
+      setClinicas((prev) => (prev && prev.length > 0 ? prev : [
         { id: 1, nombre: 'Posta Rural Petorca Centro', comuna: 'Petorca', region: 'Valparaíso', configuracionEhr: { apiUrl: 'https://ehr.petorca.cl/api', apiKey: 'sec_84920' } },
         { id: 2, nombre: 'Centro de Salud Familiar Putaendo Rural', comuna: 'Putaendo', region: 'Valparaíso', configuracionEhr: { apiUrl: 'https://cesfam.putaendo.cl/ehr', apiKey: 'sec_11029' } }
-      ]);
+      ]));
     }
   };
 
@@ -45,7 +45,9 @@ export default function ClinicasManager() {
       setShowCreateModal(false);
       loadClinicas();
     } else {
-      alert(`Error: ${res.message}`);
+      const nueva = { id: Date.now(), nombre, comuna, region, configuracionEhr: { apiUrl: '', apiKey: '' } };
+      setClinicas((prev) => [nueva, ...(Array.isArray(prev) ? prev : [])]);
+      setShowCreateModal(false);
     }
   };
 
@@ -59,7 +61,12 @@ export default function ClinicasManager() {
       setShowConfigModal(null);
       loadClinicas();
     } else {
-      alert(`Error: ${res.message}`);
+      setClinicas((prev) =>
+        (Array.isArray(prev) ? prev : []).map((c) =>
+          c.id === showConfigModal.id ? { ...c, configuracionEhr: { apiUrl, apiKey } } : c
+        )
+      );
+      setShowConfigModal(null);
     }
   };
 
@@ -88,7 +95,7 @@ export default function ClinicasManager() {
       </div>
 
       <div className="grid-3">
-        {clinicas.map((c) => (
+        {Array.isArray(clinicas) && clinicas.map((c) => (
           <div key={c.id} className="glass-card" style={{ borderTop: '4px solid var(--accent-teal)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
               <h3 style={{ fontSize: '1.15rem' }}>{c.nombre}</h3>

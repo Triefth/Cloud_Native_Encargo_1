@@ -19,7 +19,7 @@ public class FichasApplication {
     CommandLineRunner initDatabase(FichaRepository repository, FichaService fichaService) {
         return args -> {
             if (repository.count() == 0) {
-                FichaMedica f1 = repository.save(FichaMedica.builder()
+                repository.save(FichaMedica.builder()
                         .rutPaciente("18.452.123-9")
                         .nombreCompleto("Juan Pérez Garcés")
                         .fechaNacimiento("1985-06-14")
@@ -35,6 +35,24 @@ public class FichasApplication {
                         "Dr. Roberto Silva",
                         "Cardiología",
                         "Teleconsulta de control. Paciente refiere buena tolerancia a medicamentos."
+                );
+
+                repository.save(FichaMedica.builder()
+                        .rutPaciente("12.345.678-9")
+                        .nombreCompleto("Juan Pérez Morales")
+                        .fechaNacimiento("1990-03-22")
+                        .grupoSanguineo("O+")
+                        .alergias("Penicilina, Polvos silvestres")
+                        .enfermedadesCronicas("Hipertensión Arterial Grado 1")
+                        .clinicaOrigen("Posta Rural Petorca")
+                        .build());
+
+                fichaService.registrarAtencionRemota(
+                        "12.345.678-9",
+                        2L,
+                        "Dr. Alejandro Silva",
+                        "Medicina General",
+                        "Ajuste de dosis Losartán 50mg diario."
                 );
             }
         };

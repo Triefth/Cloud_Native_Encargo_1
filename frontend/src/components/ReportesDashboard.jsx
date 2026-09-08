@@ -25,8 +25,8 @@ export default function ReportesDashboard() {
       });
     }
 
-    if (!resEventos.error) {
-      setEventos(resEventos.data || []);
+    if (!resEventos.error && Array.isArray(resEventos.data)) {
+      setEventos(resEventos.data);
     } else {
       setEventos([
         { id: 1, modulo: 'citas-service', tipoEvento: 'CITA_AGENDADA', descripcion: 'Cita #1 agendada exitosamente', timestamp: '2026-09-03T17:30:00' },
@@ -121,7 +121,7 @@ export default function ReportesDashboard() {
               </tr>
             </thead>
             <tbody>
-              {eventos.map((ev) => (
+              {Array.isArray(eventos) && eventos.map((ev) => (
                 <tr key={ev.id}>
                   <td><code>#{ev.id}</code></td>
                   <td>{ev.timestamp?.replace('T', ' ')}</td>

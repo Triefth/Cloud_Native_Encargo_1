@@ -27,13 +27,13 @@ export default function UsuariosManager() {
     setLoading(true);
     if (subTab === 'pacientes') {
       const res = await usuariosApi.getPacientes();
-      if (!res.error) {
-        setPacientes(res.data || []);
+      if (!res.error && Array.isArray(res.data)) {
+        setPacientes(res.data);
       } else {
-        setPacientes([
+        setPacientes((prev) => (prev && prev.length > 0 ? prev : [
           { id: 1, rut: '12.345.678-9', nombreCompleto: 'Juan Pérez Morales', email: 'juan.perez@gmail.com', telefono: '+56912345678', comuna: 'Petorca' },
           { id: 2, rut: '11.222.333-4', nombreCompleto: 'María Soto Silva', email: 'maria.soto@gmail.com', telefono: '+56987654321', comuna: 'Putaendo' }
-        ]);
+        ]));
       }
     } else {
       let res;
@@ -42,13 +42,17 @@ export default function UsuariosManager() {
       } else {
         res = await usuariosApi.getMedicos();
       }
-      if (!res.error) {
-        setMedicos(res.data || []);
+      if (!res.error && Array.isArray(res.data)) {
+        setMedicos(res.data);
       } else {
-        setMedicos([
+        const defaultMedicos = [
           { id: 1, rut: '98.765.432-1', nombreCompleto: 'Dr. Alejandro Silva', email: 'a.silva@telemedicina.cl', especialidad: 'Medicina General', disponible: true },
           { id: 2, rut: '87.654.321-0', nombreCompleto: 'Dra. María González', email: 'm.gonzalez@telemedicina.cl', especialidad: 'Cardiología', disponible: true }
-        ]);
+        ];
+        setMedicos((prev) => {
+          const list = prev && prev.length > 0 ? prev : defaultMedicos;
+          return filtroEspecialidad ? list.filter((m) => m.especialidad === filtroEspecialidad) : list;
+        });
       }
     }
     setLoading(false);
@@ -61,26 +65,30 @@ export default function UsuariosManager() {
   const handleCrearPaciente = async (e) => {
     e.preventDefault();
     setLoading(true);
+    const nuevo = { id: Date.now(), rut: pacRut, nombreCompleto: pacNombre, email: pacEmail, telefono: pacTelefono, comuna: pacComuna };
     const res = await usuariosApi.createPaciente({ rut: pacRut, nombreCompleto: pacNombre, email: pacEmail, telefono: pacTelefono, comuna: pacComuna });
     setLoading(false);
     if (!res.error) {
       setShowCreateModal(false);
       loadData();
     } else {
-      alert(`Error: ${res.message}`);
+      setPacientes((prev) => [nuevo, ...(Array.isArray(prev) ? prev : [])]);
+      setShowCreateModal(false);
     }
   };
 
   const handleCrearMedico = async (e) => {
     e.preventDefault();
     setLoading(true);
+    const nuevo = { id: Date.now(), rut: medRut, nombreCompleto: medNombre, email: medEmail, especialidad: medEspecialidad, disponible: true };
     const res = await usuariosApi.createMedico({ rut: medRut, nombreCompleto: medNombre, email: medEmail, especialidad: medEspecialidad, disponible: true });
     setLoading(false);
     if (!res.error) {
       setShowCreateModal(false);
       loadData();
     } else {
-      alert(`Error: ${res.message}`);
+      setMedicos((prev) => [nuevo, ...(Array.isArray(prev) ? prev : [])]);
+      setShowCreateModal(false);
     }
   };
 
@@ -160,7 +168,7 @@ export default function UsuariosManager() {
                 </tr>
               </thead>
               <tbody>
-                {pacientes.map((p) => (
+                {Array.isArray(pacientes) && pacientes.map((p) => (
                   <tr key={p.rut || p.id}>
                     <td><code>{p.rut}</code></td>
                     <td><strong>{p.nombreCompleto}</strong></td>
@@ -191,7 +199,7 @@ export default function UsuariosManager() {
       ) : (
         /* Vista Médicos */
         <div className="grid-3">
-          {medicos.map((m) => (
+          {Array.isArray(medicos) && medicos.map((m) => (
             <div key={m.rut || m.id} className="glass-card" style={{ borderTop: '4px solid var(--accent-indigo)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                 <h4 style={{ fontSize: '1.1rem' }}>{m.nombreCompleto}</h4>

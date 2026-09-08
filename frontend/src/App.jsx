@@ -42,12 +42,16 @@ export default function App() {
       }
     } catch (err) {
       console.error('Error al iniciar sesión MSAL:', err);
+      alert(`MSAL Auth: ${err.message || 'No se pudo iniciar sesión con Microsoft Entra ID'}`);
     }
   };
 
   const handleDirectLogin = (username, password, role) => {
-    const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-    const payload = btoa(JSON.stringify({
+    const utf8ToBase64 = (str) =>
+      btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) => String.fromCharCode('0x' + p1)));
+
+    const header = utf8ToBase64(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+    const payload = utf8ToBase64(JSON.stringify({
       sub: username,
       preferred_username: username,
       name: username.includes('@') ? username.split('@')[0].replace('.', ' ') : username,
@@ -61,7 +65,7 @@ export default function App() {
 
     localStorage.setItem('bff_jwt_token', jwtToken);
     setActiveToken(jwtToken);
-    setActiveTab('inicio'); // Redireccionar a la página de inicio del usuario conectado
+    setActiveTab('inicio');
   };
 
   const handleDemoLogin = (email, role) => {
@@ -81,7 +85,7 @@ export default function App() {
   // Ping BFF gateway health
   const checkBffHealth = async () => {
     const res = await authApi.status();
-    if (res.status !== 503 && res.status !== 0) {
+    if (!res.error && res.status >= 200 && res.status < 300) {
       setBffStatus('online');
     } else {
       setBffStatus('offline');

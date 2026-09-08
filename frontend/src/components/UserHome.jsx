@@ -29,7 +29,9 @@ export default function UserHome({ activeToken, onNavigate, bffStatus }) {
     try {
       const parts = activeToken.split('.');
       if (parts.length === 3) {
-        const payload = JSON.parse(atob(parts[1]));
+        const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+        const payload = JSON.parse(jsonPayload);
         userInfo.username = payload.name || payload.preferred_username || payload.sub || userInfo.username;
         userInfo.email = payload.preferred_username || payload.sub || userInfo.email;
         if (payload.roles && payload.roles.length > 0) {

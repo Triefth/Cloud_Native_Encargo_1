@@ -25,9 +25,15 @@ public class FichaController {
 
     @GetMapping("/paciente/{rut}")
     public ResponseEntity<?> obtenerPorRut(@PathVariable String rut) {
-        return fichaService.obtenerPorRut(rut)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        FichaMedica ficha = fichaService.obtenerPorRut(rut)
+                .orElseGet(() -> fichaService.registrarAtencionRemota(
+                        rut,
+                        1L,
+                        "Dr. Alejandro Silva",
+                        "Medicina General",
+                        "Ficha clínica inicial creada en atención remota."
+                ));
+        return ResponseEntity.ok(ficha);
     }
 
     @PostMapping

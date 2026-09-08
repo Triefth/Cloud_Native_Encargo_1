@@ -160,7 +160,7 @@ export default function FichasManager() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(!fichaActiva.registrosAtencion || fichaActiva.registrosAtencion.length === 0) ? (
+                  {(!Array.isArray(fichaActiva.registrosAtencion) || fichaActiva.registrosAtencion.length === 0) ? (
                     <tr>
                       <td colSpan={4} style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>
                         No hay registros de atenciones anteriores en la ficha.

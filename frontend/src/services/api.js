@@ -23,13 +23,18 @@ export const apiRequest = async (endpoint, options = {}) => {
     ...options.headers,
   };
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 3000);
+
   const config = {
     ...options,
     headers,
+    signal: controller.signal,
   };
 
   try {
     const response = await fetch(`${BASE_URL}${endpoint}`, config);
+    clearTimeout(timeoutId);
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
@@ -44,6 +49,7 @@ export const apiRequest = async (endpoint, options = {}) => {
 
     return { error: false, status: response.status, data };
   } catch (err) {
+    clearTimeout(timeoutId);
     return {
       error: true,
       status: 503,

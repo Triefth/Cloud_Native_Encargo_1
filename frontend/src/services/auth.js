@@ -41,7 +41,11 @@ export async function login() {
 }
 
 export function logout() {
-  return msalInstance.logoutPopup();
+  const account = getAccount();
+  if (account) {
+    return msalInstance.logoutPopup();
+  }
+  return Promise.resolve();
 }
 
 async function getAccessToken(account) {

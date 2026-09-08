@@ -26,7 +26,7 @@ export default function ServicesHealthMonitor() {
       const startTime = performance.now();
       let res;
       if (service.id === 'bff') {
-        res = await apiRequest('/auth/validate-token', { method: 'POST', body: JSON.stringify({ token: 'test' }) });
+        res = await apiRequest('/auth/status');
       } else {
         res = await apiRequest(service.endpoint);
       }
@@ -55,7 +55,7 @@ export default function ServicesHealthMonitor() {
   }, []);
 
   const totalServices = SERVICES_LIST.length;
-  const onlineCount = Object.values(healthStatus).filter(s => s.online).length;
+  const onlineCount = Object.values(healthStatus || {}).filter(s => s && s.online).length;
 
   return (
     <div>
