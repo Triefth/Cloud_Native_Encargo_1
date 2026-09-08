@@ -11,16 +11,42 @@ import {
   Building2, 
   ArrowRight,
   Sparkles,
-  Lock
+  Lock,
+  User,
+  AlertTriangle,
+  CheckCircle2
 } from 'lucide-react';
 
-export default function LoginPage({ onLogin, onDemoLogin, bffStatus, authReady }) {
-  const [customEmail, setCustomEmail] = useState('medico.rural@telemedicina.cl');
-  const [customRole, setCustomRole] = useState('MEDICO');
+export default function LoginPage({ onLogin, onDemoLogin, onDirectLogin, bffStatus, authReady }) {
+  const [username, setUsername] = useState('medico.rural@telemedicina.cl');
+  const [password, setPassword] = useState('Med123456!');
+  const [role, setRole] = useState('MEDICO');
+  
+  const [errorMessage, setErrorMessage] = useState('');
+  const [touched, setTouched] = useState({ username: false, password: false });
 
-  const handleCustomDemoSubmit = (e) => {
+  const handleDirectSubmit = (e) => {
     e.preventDefault();
-    onDemoLogin(customEmail, customRole);
+    setTouched({ username: true, password: true });
+
+    const trimmedUser = username.trim();
+    const trimmedPass = password.trim();
+
+    if (!trimmedUser || !trimmedPass) {
+      setErrorMessage('El usuario y la contraseña no pueden estar en blanco. Por favor complete ambos campos.');
+      return;
+    }
+
+    setErrorMessage('');
+    onDirectLogin(trimmedUser, trimmedPass, role);
+  };
+
+  const handleDemoSelect = (demoEmail, demoRole) => {
+    setUsername(demoEmail);
+    setPassword('DemoPass2026!');
+    setRole(demoRole);
+    setErrorMessage('');
+    onDemoLogin(demoEmail, demoRole);
   };
 
   const demoRoles = [
@@ -28,7 +54,7 @@ export default function LoginPage({ onLogin, onDemoLogin, bffStatus, authReady }
       role: 'MEDICO',
       email: 'medico.rural@telemedicina.cl',
       title: 'Médico Rural',
-      desc: 'Acceso a atención de teleconsultas, emisión de recetas y fichas clínicas.',
+      desc: 'Acceso a atención de teleconsultas, recetas y fichas clínicas.',
       color: 'var(--accent-teal)',
       badgeClass: 'badge-info'
     },
@@ -36,7 +62,7 @@ export default function LoginPage({ onLogin, onDemoLogin, bffStatus, authReady }
       role: 'PACIENTE',
       email: 'paciente.rural@telemedicina.cl',
       title: 'Paciente Rural',
-      desc: 'Consulta de citas programadas, historial de atenciones y notificaciones.',
+      desc: 'Consulta de citas programadas, atenciones y notificaciones.',
       color: 'var(--accent-emerald)',
       badgeClass: 'badge-success'
     },
@@ -44,20 +70,23 @@ export default function LoginPage({ onLogin, onDemoLogin, bffStatus, authReady }
       role: 'ADMIN',
       email: 'admin.salud@telemedicina.cl',
       title: 'Administrador de Salud',
-      desc: 'Gestión de clínicas rurales, métricas de resiliencia y reportes globales.',
+      desc: 'Gestión de clínicas rurales, métricas de resiliencia y reportes.',
       color: 'var(--accent-purple)',
       badgeClass: 'badge-warning'
     }
   ];
 
   const microservices = [
-    { name: 'BFF Gateway', icon: ShieldCheck, status: bffStatus },
+    { name: 'BFF Gateway (8080)', icon: ShieldCheck, status: bffStatus },
     { name: 'Agenda Citas', icon: Activity, status: 'online' },
     { name: 'Teleconsulta CPaaS', icon: Video, status: 'online' },
     { name: 'Fichas Médicas', icon: FileText, status: 'online' },
     { name: 'Pacientes & Médicos', icon: Users, status: 'online' },
     { name: 'Clínicas Rurales', icon: Building2, status: 'online' },
   ];
+
+  const usernameIsEmpty = touched.username && !username.trim();
+  const passwordIsEmpty = touched.password && !password.trim();
 
   return (
     <div className="login-container">
@@ -66,11 +95,11 @@ export default function LoginPage({ onLogin, onDemoLogin, bffStatus, authReady }
         {/* Header / Branding */}
         <div className="login-header">
           <div className="login-logo-glow">
-            <Stethoscope size={38} color="#fff" />
+            <Stethoscope size={42} color="#fff" />
           </div>
           <h1 className="login-title text-gradient">Telemedicina Rural</h1>
           <p className="login-subtitle">
-            Plataforma Cloud Native desacoplada • DSY1107 Desarrollo Cloud Native I
+            Plataforma Cloud Native Desacoplada • DSY1107 Desarrollo Cloud Native I
           </p>
           <div className="login-status-bar">
             <span className="badge badge-info" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
@@ -83,52 +112,129 @@ export default function LoginPage({ onLogin, onDemoLogin, bffStatus, authReady }
         {/* Login Cards Grid */}
         <div className="login-grid">
           
-          {/* Card 1: Microsoft Entra ID */}
+          {/* Form Card: Direct Credential Login */}
           <div className="glass-card login-card primary-card">
             <div className="card-badge">
-              <Sparkles size={14} /> Recomendado Producción
+              <Sparkles size={14} /> Autenticación Principal
             </div>
+
             <h2 className="card-title">
-              <ShieldCheck size={24} style={{ color: 'var(--accent-teal)' }} />
-              Microsoft Entra ID
+              <KeyRound size={26} style={{ color: 'var(--accent-teal)' }} />
+              Iniciar Sesión
             </h2>
             <p className="card-desc">
-              Autenticación empresarial con OAuth2 / OIDC. Obtén un token Bearer JWT validado con firma HMAC por el microservicio <code>bff-service</code>.
+              Ingrese sus credenciales de usuario y contraseña para acceder a la plataforma.
             </p>
 
-            <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {/* Error Banner */}
+            {errorMessage && (
+              <div className="alert-box alert-danger" style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <AlertTriangle size={20} style={{ flexShrink: 0 }} />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleDirectSubmit} style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              
+              {/* Usuario Field */}
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">
+                  <User size={14} style={{ display: 'inline', marginRight: '4px' }} />
+                  Usuario / Correo
+                </label>
+                <input 
+                  type="text"
+                  className={`form-input ${usernameIsEmpty ? 'input-error' : ''}`}
+                  value={username}
+                  onChange={(e) => {
+                    setUsername(e.target.value);
+                    if (errorMessage) setErrorMessage('');
+                  }}
+                  onBlur={() => setTouched({ ...touched, username: true })}
+                  placeholder="ej: usuario@telemedicina.cl"
+                />
+                {usernameIsEmpty && (
+                  <span className="error-text">El usuario no puede estar en blanco</span>
+                )}
+              </div>
+
+              {/* Password Field */}
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">
+                  <Lock size={14} style={{ display: 'inline', marginRight: '4px' }} />
+                  Contraseña
+                </label>
+                <input 
+                  type="password"
+                  className={`form-input ${passwordIsEmpty ? 'input-error' : ''}`}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errorMessage) setErrorMessage('');
+                  }}
+                  onBlur={() => setTouched({ ...touched, password: true })}
+                  placeholder="••••••••••••"
+                />
+                {passwordIsEmpty && (
+                  <span className="error-text">La contraseña no puede estar en blanco</span>
+                )}
+              </div>
+
+              {/* Role Selection */}
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">Rol de Usuario</label>
+                <select 
+                  className="form-select"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                >
+                  <option value="MEDICO">Médico Rural (Atenciones & Fichas)</option>
+                  <option value="PACIENTE">Paciente Rural (Consultas & Citas)</option>
+                  <option value="ADMIN">Administrador de Salud (Gestión & Reportes)</option>
+                </select>
+              </div>
+
+              {/* Submit Button */}
               <button 
+                type="submit"
                 className="btn btn-primary btn-login-main"
+                style={{ marginTop: '8px' }}
+              >
+                Ingresar a la Plataforma
+                <ArrowRight size={18} />
+              </button>
+            </form>
+
+            <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border-color)' }}>
+              <button 
+                className="btn btn-secondary btn-sm"
+                style={{ width: '100%' }}
                 onClick={onLogin}
                 disabled={!authReady}
               >
-                <KeyRound size={20} />
-                Iniciar sesión con Microsoft
-                <ArrowRight size={18} />
+                <ShieldCheck size={16} />
+                O Iniciar Sesión con Microsoft Entra ID (SSO)
               </button>
-              <span className="login-hint">
-                <Lock size={13} /> Token JWT administrado por MSAL Browser SDK
-              </span>
             </div>
           </div>
 
-          {/* Card 2: Quick Demo Access */}
+          {/* Card 2: Quick Demo Roles Access */}
           <div className="glass-card login-card">
             <h2 className="card-title">
               <UserCheck size={24} style={{ color: 'var(--accent-emerald)' }} />
-              Acceso Rápido Demo
+              Acceso Rápido por Rol
             </h2>
             <p className="card-desc">
-              Acceso directo inmediato para evaluación del encargo sin requerir credenciales de Microsoft Entra ID.
+              Seleccione un perfil para pre-cargar usuario y contraseña para pruebas inmediatas.
             </p>
 
             {/* Demo Roles selection */}
-            <div className="demo-roles-container">
+            <div className="demo-roles-container" style={{ marginTop: '16px' }}>
               {demoRoles.map((item) => (
                 <div 
                   key={item.role}
                   className="demo-role-card"
-                  onClick={() => onDemoLogin(item.email, item.role)}
+                  onClick={() => handleDemoSelect(item.email, item.role)}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span className={`badge ${item.badgeClass}`}>{item.role}</span>
@@ -140,40 +246,17 @@ export default function LoginPage({ onLogin, onDemoLogin, bffStatus, authReady }
               ))}
             </div>
 
-            {/* Custom Email Form */}
-            <form onSubmit={handleCustomDemoSubmit} className="demo-custom-form">
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input 
-                  type="email"
-                  className="form-input"
-                  style={{ fontSize: '0.85rem' }}
-                  value={customEmail}
-                  onChange={(e) => setCustomEmail(e.target.value)}
-                  placeholder="correo@telemedicina.cl"
-                  required
-                />
-                <select 
-                  className="form-select"
-                  style={{ width: '130px', fontSize: '0.85rem' }}
-                  value={customRole}
-                  onChange={(e) => setCustomRole(e.target.value)}
-                >
-                  <option value="MEDICO">MÉDICO</option>
-                  <option value="PACIENTE">PACIENTE</option>
-                  <option value="ADMIN">ADMIN</option>
-                </select>
-              </div>
-              <button type="submit" className="btn btn-secondary btn-sm" style={{ width: '100%', marginTop: '8px' }}>
-                Entrar con correo personalizado
-              </button>
-            </form>
+            <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px dashed var(--border-color)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              <CheckCircle2 size={15} style={{ color: 'var(--accent-emerald)', flexShrink: 0 }} />
+              <span>Redirección automática al Inicio del Usuario Conectado tras ingresar.</span>
+            </div>
           </div>
 
         </div>
 
         {/* Microservices Footer Preview */}
         <div className="login-services-preview">
-          <h3 className="preview-title">Arquitectura de Microservicios Habilitada</h3>
+          <h3 className="preview-title">Arquitectura Cloud Native • Microservicios Habilitados</h3>
           <div className="services-pills-grid">
             {microservices.map((srv, idx) => {
               const IconComp = srv.icon;

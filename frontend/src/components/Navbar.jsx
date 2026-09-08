@@ -1,5 +1,6 @@
 import React from 'react';
 import { 
+  Home,
   Activity, 
   Calendar, 
   Video, 
@@ -9,13 +10,26 @@ import {
   Building2, 
   BarChart3, 
   ShieldCheck, 
-  Stethoscope 
+  Stethoscope,
+  User
 } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab, bffStatus, activeToken, authReady, onLogin, onLogout }) {
+  let userLabel = '';
+  if (activeToken) {
+    try {
+      const parts = activeToken.split('.');
+      if (parts.length === 3) {
+        const payload = JSON.parse(atob(parts[1]));
+        userLabel = payload.name || payload.preferred_username || payload.sub || '';
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
   const navItems = [
-    { id: 'health', label: 'Resiliencia & Salud', icon: Activity },
-    { id: 'jwt', label: 'Dev JWT MSAL', icon: ShieldCheck },
+    { id: 'inicio', label: 'Inicio', icon: Home },
     { id: 'citas', label: 'Agenda Citas', icon: Calendar },
     { id: 'consultas', label: 'Teleconsulta CPaaS', icon: Video },
     { id: 'fichas', label: 'Fichas Médicas', icon: FileText },
@@ -23,6 +37,8 @@ export default function Navbar({ activeTab, setActiveTab, bffStatus, activeToken
     { id: 'notificaciones', label: 'Notificaciones', icon: Bell },
     { id: 'clinicas', label: 'Clínicas Rurales', icon: Building2 },
     { id: 'reportes', label: 'Reportes Operativos', icon: BarChart3 },
+    { id: 'health', label: 'Resiliencia & Salud', icon: Activity },
+    { id: 'jwt', label: 'Dev JWT MSAL', icon: ShieldCheck },
   ];
 
   return (
@@ -30,7 +46,7 @@ export default function Navbar({ activeTab, setActiveTab, bffStatus, activeToken
       <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         
         {/* Brand */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }} onClick={() => setActiveTab('inicio')}>
           <div style={{ 
             width: '42px', 
             height: '42px', 
@@ -54,15 +70,22 @@ export default function Navbar({ activeTab, setActiveTab, bffStatus, activeToken
         </div>
 
         {/* Status Indicators */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
           <div className="badge badge-info" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span className={`status-dot ${bffStatus === 'online' ? 'online' : 'offline'}`}></span>
             BFF Gateway (8080): {bffStatus === 'online' ? 'ONLINE' : 'DESCONECTADO'}
           </div>
 
+          {userLabel && (
+            <div className="badge badge-success" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <User size={13} />
+              <span>{userLabel}</span>
+            </div>
+          )}
+
           <div className={`badge ${activeToken ? 'badge-success' : 'badge-warning'}`}>
             <ShieldCheck size={14} />
-            {activeToken ? 'Token JWT Activo' : 'Sin Token JWT'}
+            {activeToken ? 'JWT Activo' : 'Sin Token'}
           </div>
 
           {activeToken ? (

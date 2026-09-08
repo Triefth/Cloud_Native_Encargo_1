@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
+import UserHome from './components/UserHome';
 import ServicesHealthMonitor from './components/ServicesHealthMonitor';
 import JwtManager from './components/JwtManager';
 import CitasManager from './components/CitasManager';
@@ -14,7 +15,7 @@ import { getAuthToken, authApi } from './services/api';
 import { initializeAuth, login, logout } from './services/auth';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('health');
+  const [activeTab, setActiveTab] = useState('inicio');
   const [bffStatus, setBffStatus] = useState('offline');
   const [activeToken, setActiveToken] = useState(getAuthToken());
   const [authReady, setAuthReady] = useState(false);
@@ -25,6 +26,7 @@ export default function App() {
         if (token) {
           localStorage.setItem('bff_jwt_token', token);
           setActiveToken(token);
+          setActiveTab('inicio');
         }
       })
       .finally(() => setAuthReady(true));
@@ -36,35 +38,41 @@ export default function App() {
       if (token) {
         localStorage.setItem('bff_jwt_token', token);
         setActiveToken(token);
+        setActiveTab('inicio');
       }
     } catch (err) {
       console.error('Error al iniciar sesión MSAL:', err);
     }
   };
 
-  const handleDemoLogin = (email, role) => {
+  const handleDirectLogin = (username, password, role) => {
     const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
     const payload = btoa(JSON.stringify({
-      sub: email,
-      preferred_username: email,
-      name: email.split('@')[0].replace('.', ' '),
-      roles: [role],
+      sub: username,
+      preferred_username: username,
+      name: username.includes('@') ? username.split('@')[0].replace('.', ' ') : username,
+      roles: [role || 'MEDICO'],
       iss: 'https://login.microsoftonline.com/telemedicina-rural',
       aud: 'api://telemedicina-bff',
       exp: Math.floor(Date.now() / 1000) + 86400
     }));
-    const signature = 'demo_signature_' + Date.now();
-    const demoToken = `${header}.${payload}.${signature}`;
+    const signature = 'direct_sig_' + Date.now();
+    const jwtToken = `${header}.${payload}.${signature}`;
 
-    localStorage.setItem('bff_jwt_token', demoToken);
-    setActiveToken(demoToken);
+    localStorage.setItem('bff_jwt_token', jwtToken);
+    setActiveToken(jwtToken);
+    setActiveTab('inicio'); // Redireccionar a la página de inicio del usuario conectado
+  };
+
+  const handleDemoLogin = (email, role) => {
+    handleDirectLogin(email, 'DemoPass2026!', role);
   };
 
   const handleLogout = async () => {
     try {
       await logout();
     } catch (e) {
-      // Ignore MSAL logout error if logged in via demo
+      // Ignore MSAL logout error if logged in via direct credentials
     }
     localStorage.removeItem('bff_jwt_token');
     setActiveToken('');
@@ -73,7 +81,6 @@ export default function App() {
   // Ping BFF gateway health
   const checkBffHealth = async () => {
     const res = await authApi.status();
-    // If BFF responds (even with valid=false for dummy token), it's online
     if (res.status !== 503 && res.status !== 0) {
       setBffStatus('online');
     } else {
@@ -93,7 +100,8 @@ export default function App() {
     return (
       <LoginPage 
         onLogin={handleLogin} 
-        onDemoLogin={handleDemoLogin} 
+        onDemoLogin={handleDemoLogin}
+        onDirectLogin={handleDirectLogin}
         bffStatus={bffStatus} 
         authReady={authReady} 
       />
@@ -113,6 +121,7 @@ export default function App() {
       />
 
       <main className="main-content">
+        {activeTab === 'inicio' && <UserHome activeToken={activeToken} onNavigate={setActiveTab} bffStatus={bffStatus} />}
         {activeTab === 'health' && <ServicesHealthMonitor />}
         {activeTab === 'jwt' && <JwtManager activeToken={activeToken} setActiveToken={setActiveToken} />}
         {activeTab === 'citas' && <CitasManager />}
@@ -137,4 +146,3 @@ export default function App() {
     </div>
   );
 }
-
