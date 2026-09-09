@@ -16,7 +16,11 @@ terraform {
     }
   }
 
-  # Si usas S3 para backend de estado en CI/CD, descomenta la siguiente linea
+# Si usas S3 para backend de estado en CI/CD, descomenta la siguiente linea
+  # Los valores reales (bucket, key, region, dynamodb_table) se pasan desde
+  # GitHub Actions con `-backend-config=...` en el paso `terraform init`,
+  # porque el nombre del bucket depende del Account ID de AWS y no puede
+  # quedar hardcodeado aquí.
   # backend "s3" {}
 }
 
