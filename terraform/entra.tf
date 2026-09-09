@@ -31,7 +31,7 @@ resource "azuread_application" "frontend" {
   sign_in_audience = "AzureADMyOrg"
 
   single_page_application {
-redirect_uris = [
+    redirect_uris = [
       endswith(var.frontend_redirect_uri, "/") ? var.frontend_redirect_uri : "${var.frontend_redirect_uri}/"
     ]
   }

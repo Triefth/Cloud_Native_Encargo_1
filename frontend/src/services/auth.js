@@ -34,6 +34,8 @@ export function getMsalInstance() {
   return _msalInstance;
 }
 
+export const msalInstance = getMsalInstance();
+
 const loginRequest = {
   scopes: apiScope ? [apiScope] : [],
 };

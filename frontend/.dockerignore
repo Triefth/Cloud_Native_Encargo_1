@@ -2,3 +2,8 @@ node_modules
 dist
 .git
 .env
+dist
+.git
+.env
+.env.local
+npm-debug.log*
