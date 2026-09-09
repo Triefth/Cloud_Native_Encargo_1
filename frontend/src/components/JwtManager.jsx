@@ -31,7 +31,16 @@ export default function JwtManager({ activeToken, setActiveToken }) {
 
   const handleCopy = () => {
     if (activeToken) {
-      navigator.clipboard.writeText(activeToken);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(activeToken);
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = activeToken;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try { document.execCommand('copy'); } catch(e) {}
+        document.body.removeChild(textArea);
+      }
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }

@@ -26,16 +26,12 @@ resource "azuread_application" "backend" {
   }
 }
 
-resource "azuread_service_principal" "backend" {
-  client_id = azuread_application.backend.client_id
-}
-
 resource "azuread_application" "frontend" {
   display_name     = "telemedicina-frontend-spa"
   sign_in_audience = "AzureADMyOrg"
 
   single_page_application {
-    redirect_uris = [var.frontend_redirect_uri]
+    redirect_uris = [endswith(var.frontend_redirect_uri, "/") ? var.frontend_redirect_uri : "${var.frontend_redirect_uri}/"]
   }
 
   required_resource_access {
@@ -51,14 +47,4 @@ resource "azuread_application" "frontend" {
       type = "Scope"
     }
   }
-}
-
-resource "azuread_service_principal" "frontend" {
-  client_id = azuread_application.frontend.client_id
-}
-
-resource "azuread_service_principal_delegated_permission_grant" "frontend_backend" {
-  service_principal_object_id          = azuread_service_principal.frontend.object_id
-  resource_service_principal_object_id = azuread_service_principal.backend.object_id
-  claim_values                         = ["read", "write"]
 }

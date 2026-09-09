@@ -7,59 +7,97 @@ const authority = import.meta.env.VITE_AZURE_AUTHORITY
 const redirectUri = import.meta.env.VITE_AZURE_REDIRECT_URI || window.location.origin;
 const apiScope = import.meta.env.VITE_AZURE_API_SCOPE;
 
-export const msalInstance = new PublicClientApplication({
-  auth: {
-    clientId: clientId || '00000000-0000-0000-0000-000000000000',
-    authority,
-    redirectUri,
-  },
-  cache: {
-    cacheLocation: 'localStorage',
-  },
-});
+let _msalInstance = null;
+
+export function getMsalInstance() {
+  if (!_msalInstance) {
+    try {
+      if (typeof window !== 'undefined' && (!window.crypto || !window.crypto.subtle)) {
+        console.warn('MSAL Notice: Web Crypto (window.crypto.subtle) is available on HTTPS or localhost.');
+        return null;
+      }
+      _msalInstance = new PublicClientApplication({
+        auth: {
+          clientId: clientId || '00000000-0000-0000-0000-000000000000',
+          authority,
+          redirectUri,
+        },
+        cache: {
+          cacheLocation: 'localStorage',
+        },
+      });
+    } catch (err) {
+      console.warn('MSAL initialization check:', err.message);
+      return null;
+    }
+  }
+  return _msalInstance;
+}
 
 const loginRequest = {
   scopes: apiScope ? [apiScope] : [],
 };
 
 export async function initializeAuth() {
-  await msalInstance.initialize();
-  await msalInstance.handleRedirectPromise();
-  const account = msalInstance.getAllAccounts()[0];
-  if (!account) {
+  const instance = getMsalInstance();
+  if (!instance) {
     return null;
   }
+  try {
+    await instance.initialize();
+    await instance.handleRedirectPromise();
+    const account = instance.getAllAccounts()[0];
+    if (!account) {
+      return null;
+    }
 
-  msalInstance.setActiveAccount(account);
-  return getAccessToken(account);
+    instance.setActiveAccount(account);
+    return await getAccessToken(account);
+  } catch (err) {
+    console.warn('MSAL initialization warning:', err);
+    return null;
+  }
 }
 
 export async function login() {
-  const result = await msalInstance.loginPopup(loginRequest);
-  msalInstance.setActiveAccount(result.account);
+  const instance = getMsalInstance();
+  if (!instance) {
+    throw new Error('MSAL requiere conexion HTTPS o localhost para autenticar con Azure AD en el navegador.');
+  }
+  const result = await instance.loginPopup(loginRequest);
+  instance.setActiveAccount(result.account);
   return getAccessToken(result.account);
 }
 
 export function logout() {
+  const instance = getMsalInstance();
   const account = getAccount();
-  if (account) {
-    return msalInstance.logoutPopup();
+  if (instance && account) {
+    return instance.logoutPopup().catch(() => {});
   }
   return Promise.resolve();
 }
 
 async function getAccessToken(account) {
-  if (!apiScope) {
-    throw new Error('VITE_AZURE_API_SCOPE no esta configurado');
+  const instance = getMsalInstance();
+  if (!instance || !apiScope) {
+    return null;
   }
 
-  const result = await msalInstance.acquireTokenSilent({
-    ...loginRequest,
-    account,
-  });
-  return result.accessToken;
+  try {
+    const result = await instance.acquireTokenSilent({
+      ...loginRequest,
+      account,
+    });
+    return result.accessToken;
+  } catch (err) {
+    console.warn('Silent token acquire failed:', err);
+    return null;
+  }
 }
 
 export function getAccount() {
-  return msalInstance.getActiveAccount() || msalInstance.getAllAccounts()[0] || null;
+  const instance = getMsalInstance();
+  if (!instance) return null;
+  return instance.getActiveAccount() || instance.getAllAccounts()[0] || null;
 }

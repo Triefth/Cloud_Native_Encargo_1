@@ -1,6 +1,7 @@
 // API Client for Telemedicina Rural BFF Gateway
 
-const BASE_URL = '/api/bff';
+const gatewayUrl = import.meta.env.VITE_API_GATEWAY_URL;
+const BASE_URL = gatewayUrl ? (gatewayUrl.replace(/\/$/, '') + '/api/bff') : '/api/bff';
 
 export const getAuthToken = () => {
   return localStorage.getItem('bff_jwt_token') || '';
