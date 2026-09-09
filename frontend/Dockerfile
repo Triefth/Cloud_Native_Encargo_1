@@ -22,6 +22,7 @@ ENV VITE_AZURE_REDIRECT_URI=$VITE_AZURE_REDIRECT_URI
 
 # Copiar código fuente y compilar
 COPY . .
+RUN chmod -R +x node_modules/.bin || true
 RUN npm run build
 
 # Etapa final: Servidor web ultraligero Nginx
