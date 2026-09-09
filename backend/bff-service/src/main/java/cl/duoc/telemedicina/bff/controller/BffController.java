@@ -120,7 +120,11 @@ public class BffController {
         HttpMethod method = HttpMethod.valueOf(request.getMethod());
 
         try {
-            return restTemplate.exchange(targetUrl, method, entity, Object.class);
+            ResponseEntity<Object> response = restTemplate.exchange(targetUrl, method, entity, Object.class);
+            HttpHeaders responseHeaders = new HttpHeaders();
+            responseHeaders.putAll(response.getHeaders());
+            responseHeaders.remove(HttpHeaders.TRANSFER_ENCODING);
+            return new ResponseEntity<>(response.getBody(), responseHeaders, response.getStatusCode());
         } catch (HttpClientErrorException | HttpServerErrorException e) {
             return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
         } catch (Exception e) {
