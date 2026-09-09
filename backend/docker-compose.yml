@@ -6,9 +6,9 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - AZURE_ISSUER=${AZURE_ISSUER}
-      - AZURE_AUDIENCE=${AZURE_AUDIENCE:-api://telemedicina-rural-api}
-      - FRONTEND_ORIGIN=${FRONTEND_ORIGIN:-http://localhost:5173}
+      - AZURE_ISSUER=${AZURE_ISSUER:-https://login.microsoftonline.com/72fd0b5a-8a6a-4cff-89f6-bde961f7e250/v2.0}
+      - AZURE_AUDIENCE=${AZURE_AUDIENCE:-dc5dbf61-ed71-4920-97ac-bfee3c1a63b9}
+      - FRONTEND_ORIGIN=${FRONTEND_ORIGIN:-*}
       - CITAS_SERVICE_URL=http://citas-service:8081
       - CONSULTAS_SERVICE_URL=http://consultas-service:8082
       - FICHAS_SERVICE_URL=http://fichas-service:8083

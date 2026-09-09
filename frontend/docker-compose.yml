@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  frontend-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - VITE_AZURE_CLIENT_ID=${VITE_AZURE_CLIENT_ID}
+        - VITE_AZURE_TENANT_ID=${VITE_AZURE_TENANT_ID}
+        - VITE_AZURE_AUTHORITY=${VITE_AZURE_AUTHORITY}
+        - VITE_AZURE_API_SCOPE=${VITE_AZURE_API_SCOPE}
+        - VITE_AZURE_REDIRECT_URI=${VITE_AZURE_REDIRECT_URI}
+    container_name: telemedicina-frontend
+    restart: always
+    ports:
+      - "80:80"
+    environment:
+      - BACKEND_HOST=${BACKEND_HOST:-backend-ip}

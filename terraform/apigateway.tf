@@ -5,7 +5,10 @@ resource "aws_apigatewayv2_api" "telemedicina_api" {
   cors_configuration {
     allow_headers = ["Authorization", "Content-Type", "X-Requested-With", "Accept"]
     allow_methods = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
-    allow_origins = [var.frontend_redirect_uri, "http://${aws_eip.frontend_eip.public_ip}"]
+allow_origins = [
+      trimsuffix(var.frontend_redirect_uri, "/"),
+      "http://${aws_eip.frontend_eip.public_ip}"
+    ]
     max_age       = 3600
   }
 }
@@ -33,6 +36,15 @@ resource "aws_apigatewayv2_integration" "ec2_integration" {
   }
 }
 
+# Ruta para peticiones CORS preflight OPTIONS (sin JWT para que el navegador no reciba 401/403)
+resource "aws_apigatewayv2_route" "options_route" {
+  api_id             = aws_apigatewayv2_api.telemedicina_api.id
+  route_key          = "OPTIONS /{proxy+}"
+  target             = "integrations/${aws_apigatewayv2_integration.ec2_integration.id}"
+  authorization_type = "NONE"
+}
+
+# Rutas protegidas con JWT de Microsoft Entra ID
 resource "aws_apigatewayv2_route" "proxy_route" {
   api_id             = aws_apigatewayv2_api.telemedicina_api.id
   route_key          = "ANY /{proxy+}"
