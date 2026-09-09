@@ -20,7 +20,7 @@ terraform {
   # GitHub Actions con `-backend-config=...` en el paso `terraform init`,
   # porque el nombre del bucket depende del Account ID de AWS y no puede
   # quedar hardcodeado aquí.
-  backend "s3" {}
+  # backend "s3" {}
 }
 
 provider "aws" {

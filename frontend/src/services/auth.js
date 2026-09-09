@@ -7,9 +7,13 @@ const authority = import.meta.env.VITE_AZURE_AUTHORITY
 const redirectUri = import.meta.env.VITE_AZURE_REDIRECT_URI || window.location.origin;
 const apiScope = import.meta.env.VITE_AZURE_API_SCOPE;
 
+if (!clientId) {
+  throw new Error('VITE_AZURE_CLIENT_ID no esta configurado');
+}
+
 export const msalInstance = new PublicClientApplication({
   auth: {
-    clientId: clientId || '00000000-0000-0000-0000-000000000000',
+    clientId,
     authority,
     redirectUri,
   },

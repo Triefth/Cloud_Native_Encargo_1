@@ -31,7 +31,7 @@ variable "azure_issuer" {
 variable "frontend_redirect_uri" {
   description = "URI SPA registrada en Microsoft Entra"
   type        = string
-  default     = "http://localhost:5173"
+  default     = "http://localhost:5173/"
 }
 
 variable "backend_api_identifier_uri" {
