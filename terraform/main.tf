@@ -141,7 +141,8 @@ resource "aws_instance" "backend_server" {
 
   user_data = <<-EOF
               #!/bin/bash
-              set -e
+              exec > >(tee -a /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+              set -x
 
               # 1. Configurar SWAP de 4GB para compilar los microservicios sin agotar RAM
               if [ ! -f /swapfile ]; then
@@ -152,7 +153,8 @@ resource "aws_instance" "backend_server" {
                 echo '/swapfile none swap sw 0 0' >> /etc/fstab
               fi
 
-              # 2. Instalar Docker y dependencias
+              # 2. Esperar que cloud-init libere apt-get y luego instalar paquetes
+              while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 3; done
               apt-get update -y
               apt-get install -y docker.io docker-compose-v2 git curl
               systemctl enable docker
@@ -160,8 +162,8 @@ resource "aws_instance" "backend_server" {
               usermod -aG docker ubuntu
 
               # 3. Clonar repositorio
-              mkdir -p /home/ubuntu/app
-              git clone -b ${var.git_branch} ${var.git_repo_url} /home/ubuntu/app || true
+              rm -rf /home/ubuntu/app
+              git clone -b ${var.git_branch} ${var.git_repo_url} /home/ubuntu/app
 
               # 4. Configurar variables de entorno para el backend
               cd /home/ubuntu/app/backend
@@ -203,9 +205,10 @@ resource "aws_instance" "frontend_server" {
 
   user_data = <<-EOF
               #!/bin/bash
-              set -e
+              exec > >(tee -a /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+              set -x
 
-              # 1. Configurar SWAP de 2GB
+              # 1. Configurar SWAP de 2GB (esencial para npm run build en t2.micro)
               if [ ! -f /swapfile ]; then
                 fallocate -l 2G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=2048
                 chmod 600 /swapfile
@@ -214,25 +217,26 @@ resource "aws_instance" "frontend_server" {
                 echo '/swapfile none swap sw 0 0' >> /etc/fstab
               fi
 
-              # 2. Instalar Docker y dependencias
+              # 2. Esperar que cloud-init libere apt-get y luego instalar paquetes
+              while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 3; done
               apt-get update -y
               apt-get install -y docker.io docker-compose-v2 git curl
+
+              # Detener y deshabilitar nginx nativo del sistema
+              systemctl stop nginx || true
+              systemctl disable nginx || true
+
               systemctl enable docker
               systemctl start docker
               usermod -aG docker ubuntu
 
-              # Asegurarse de que no haya servicio nginx nativo corriendo
-              systemctl stop nginx || true
-              systemctl disable nginx || true
-
               # 3. Clonar repositorio
-              mkdir -p /home/ubuntu/app
-              git clone -b ${var.git_branch} ${var.git_repo_url} /home/ubuntu/app || true
+              rm -rf /home/ubuntu/app
+              git clone -b ${var.git_branch} ${var.git_repo_url} /home/ubuntu/app
 
               # 4. Configurar variables de entorno y Nginx con la IP de Backend
               cd /home/ubuntu/app/frontend
 
-              # Reemplazar BACKEND_HOST en nginx.conf con la IP pública de la EC2 Backend
               sed -i 's/BACKEND_HOST/${aws_eip.backend_eip.public_ip}/g' nginx.conf
 
               cat << 'ENVFILE' > .env
@@ -246,7 +250,7 @@ resource "aws_instance" "frontend_server" {
 
               chown -R ubuntu:ubuntu /home/ubuntu/app
 
-              # 5. Compilar la SPA con Nginx en contenedor y levantar en puerto 80
+              # 5. Compilar y levantar la SPA con Docker Compose en el puerto 80
               docker compose up -d --build
               EOF
 
