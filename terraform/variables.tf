@@ -49,7 +49,7 @@ variable "frontend_redirect_uri" {
 variable "backend_api_identifier_uri" {
   description = "Application ID URI de la API protegida"
   type        = string
-  default     = "api://telemedicina-rural-api"
+  default     = "api://telemedicina-rural-api-123"
 }
 
 variable "backend_read_scope_id" {

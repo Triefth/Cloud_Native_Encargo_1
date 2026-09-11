@@ -66,6 +66,9 @@ export async function login() {
   if (!instance) {
     throw new Error('MSAL requiere conexion HTTPS o localhost para autenticar con Azure AD en el navegador.');
   }
+  if (!clientId || clientId === '00000000-0000-0000-0000-000000000000') {
+    throw new Error('No se ha configurado un VITE_AZURE_CLIENT_ID en el archivo .env. Para desarrollo local usa el formulario directo o los botones de "Acceso Rápido por Rol".');
+  }
   const result = await instance.loginPopup(loginRequest);
   instance.setActiveAccount(result.account);
   return getAccessToken(result.account);
