@@ -13,7 +13,8 @@ import {
   CheckCircle, 
   ArrowRight,
   Stethoscope,
-  Key
+  Key,
+  Radio
 } from 'lucide-react';
 
 export default function UserHome({ activeToken, onNavigate, bffStatus }) {
@@ -80,6 +81,13 @@ export default function UserHome({ activeToken, onNavigate, bffStatus }) {
       desc: 'Recordatorios SMS/Email y avisos de pacientes.', 
       icon: Bell,
       color: 'var(--accent-amber)'
+    },
+    { 
+      id: 'rabbitmq', 
+      title: 'RabbitMQ Logging', 
+      desc: 'Enrutamiento de eventos con DirectExchange y Routing Keys (INFO, WARN, ERROR).', 
+      icon: Radio,
+      color: '#38bdf8'
     },
     { 
       id: 'reportes', 

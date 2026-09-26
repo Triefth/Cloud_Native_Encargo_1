@@ -8,6 +8,7 @@ import ConsultasManager from './components/ConsultasManager';
 import FichasManager from './components/FichasManager';
 import UsuariosManager from './components/UsuariosManager';
 import NotificacionesManager from './components/NotificacionesManager';
+import RabbitMQLogging from './components/RabbitMQLogging';
 import ClinicasManager from './components/ClinicasManager';
 import ReportesDashboard from './components/ReportesDashboard';
 import LoginPage from './components/LoginPage';
@@ -133,6 +134,7 @@ export default function App() {
         {activeTab === 'fichas' && <FichasManager />}
         {activeTab === 'usuarios' && <UsuariosManager />}
         {activeTab === 'notificaciones' && <NotificacionesManager />}
+        {activeTab === 'rabbitmq' && <RabbitMQLogging />}
         {activeTab === 'clinicas' && <ClinicasManager />}
         {activeTab === 'reportes' && <ReportesDashboard />}
       </main>

@@ -44,6 +44,10 @@ services:
     build: ./notificaciones-service
     ports:
       - "8084:8084"
+    environment:
+      - SPRING_RABBITMQ_HOST=rabbitmq
+    depends_on:
+      - rabbitmq
 
   reportes-service:
     build: ./reportes-service
@@ -59,3 +63,24 @@ services:
     build: ./clinicas-service
     ports:
       - "8087:8087"
+
+  rabbitmq:
+    image: rabbitmq:4.2-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"   # AMQP Protocol Port
+      - "15672:15672" # Management UI Port
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  rabbitmq_data:
+
