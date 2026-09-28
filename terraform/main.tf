@@ -53,6 +53,14 @@ resource "aws_security_group" "backend_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # Puerto expuesto por RabbitMQ Management (15672)
+  ingress {
+    from_port   = 15672
+    to_port     = 15672
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -77,6 +85,13 @@ resource "aws_security_group" "ec2_sg" {
   ingress {
     from_port   = 8080
     to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 15672
+    to_port     = 15672
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -269,6 +284,7 @@ ami                    = data.aws_ami.ubuntu.id
               VITE_AZURE_API_SCOPE=${var.backend_api_identifier_uri}/read
               VITE_AZURE_REDIRECT_URI=http://${aws_eip.frontend_eip.public_ip}/
               BACKEND_HOST=${aws_eip.backend_eip.public_ip}
+              VITE_BACKEND_HOST=${aws_eip.backend_eip.public_ip}
               ENVFILE
 
               chown -R ubuntu:ubuntu /home/ubuntu/app

@@ -290,17 +290,24 @@ export default function RabbitMQLogging() {
           </div>
 
           <div style={{ display: 'flex', gap: '12px' }}>
-            <a 
-              href={typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? `http://${window.location.hostname}:15672` : 'http://localhost:15672'} 
-              target="_blank" 
-              rel="noreferrer" 
-              className="btn btn-secondary"
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}
-            >
-              <Server size={16} />
-              RabbitMQ Management (15672)
-              <ExternalLink size={14} />
-            </a>
+            {(() => {
+              const backendHost = import.meta.env.VITE_BACKEND_HOST;
+              const host = backendHost || (typeof window !== 'undefined' ? window.location.hostname : 'localhost');
+              const rabbitMqUrl = `http://${host}:15672`;
+              return (
+                <a 
+                  href={rabbitMqUrl} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="btn btn-secondary"
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}
+                >
+                  <Server size={16} />
+                  RabbitMQ Management (15672)
+                  <ExternalLink size={14} />
+                </a>
+              );
+            })()}
           </div>
         </div>
 
