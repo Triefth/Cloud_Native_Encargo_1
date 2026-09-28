@@ -71,7 +71,12 @@ export default function RabbitMQLogging() {
   // --- GUÍA 3: DLX / DLQ ORDERS LOGIC ---
   const checkBackendStatus = async () => {
     try {
-      const res = await tryFetch(['http://localhost:8080/api/orders/status', 'http://localhost:8084/api/orders/status'], { method: 'GET' });
+      const res = await tryFetch([
+        '/api/orders/status',
+        '/api/bff/orders/status',
+        'http://localhost:8080/api/orders/status',
+        'http://localhost:8084/api/orders/status'
+      ], { method: 'GET' });
       if (res.ok) {
         setOrderStatus('✓ Conectado a Backend & RabbitMQ');
       }
@@ -91,6 +96,8 @@ export default function RabbitMQLogging() {
     setLoading(true);
 
     const candidateUrls = [
+      '/api/orders/send',
+      '/api/bff/orders/send',
       'http://localhost:8080/api/orders/send',
       'http://localhost:8084/api/orders/send'
     ];
@@ -161,6 +168,9 @@ export default function RabbitMQLogging() {
     setLoading(true);
     const bodyData = { level, message };
     const candidateUrls = [
+      '/api/bff/log',
+      '/api/log',
+      '/log',
       'http://localhost:8080/log',
       'http://localhost:8080/api/bff/log',
       'http://localhost:8084/log'
@@ -194,6 +204,8 @@ export default function RabbitMQLogging() {
     setLoading(true);
 
     const candidateUrls = [
+      '/api/messages',
+      '/api/bff/messages',
       'http://localhost:8080/api/messages',
       'http://localhost:8080/api/bff/messages',
       'http://localhost:8084/api/messages'
@@ -218,12 +230,18 @@ export default function RabbitMQLogging() {
     }
   };
 
-  // --- GUÍA 4: PROGRAMMATIC ADMIN & LISTENER CONTROL ---
+  // --- GUÍA 4: PROGRAMMATIC ADMIN & LISTENERS CONTROL ---
   const handleCreateQueue = async () => {
     if (!newQueueName.trim()) return;
     setLoading(true);
+    const candidateUrls = [
+      `/api/rabbitmq/queues?queueName=${newQueueName}`,
+      `/api/bff/rabbitmq/queues?queueName=${newQueueName}`,
+      `http://localhost:8080/api/rabbitmq/queues?queueName=${newQueueName}`,
+      `http://localhost:8084/api/rabbitmq/queues?queueName=${newQueueName}`
+    ];
     try {
-      const res = await tryFetch([`http://localhost:8080/api/rabbitmq/queues?queueName=${newQueueName}`, `http://localhost:8084/api/rabbitmq/queues?queueName=${newQueueName}`], { method: 'POST' });
+      const res = await tryFetch(candidateUrls, { method: 'POST' });
       addLogEntry('ADMIN', `Cola '${newQueueName}' creada dinámicamente`, res.text);
       setNewQueueName('');
     } catch (err) {
@@ -236,8 +254,14 @@ export default function RabbitMQLogging() {
   const handleToggleListener = async (action) => {
     setLoading(true);
     const listenerId = 'order-listener';
+    const candidateUrls = [
+      `/api/listeners/${listenerId}/${action}`,
+      `/api/bff/listeners/${listenerId}/${action}`,
+      `http://localhost:8080/api/listeners/${listenerId}/${action}`,
+      `http://localhost:8084/api/listeners/${listenerId}/${action}`
+    ];
     try {
-      const res = await tryFetch([`http://localhost:8080/api/listeners/${listenerId}/${action}`, `http://localhost:8084/api/listeners/${listenerId}/${action}`], { method: 'POST' });
+      const res = await tryFetch(candidateUrls, { method: 'POST' });
       setListenerStatus({ orderListener: action === 'pause' ? 'PAUSED' : 'ACTIVE' });
       addLogEntry('ADMIN', `Listener '${listenerId}' -> ${action.toUpperCase()}`, res.text);
     } catch (err) {
@@ -267,7 +291,7 @@ export default function RabbitMQLogging() {
 
           <div style={{ display: 'flex', gap: '12px' }}>
             <a 
-              href="http://localhost:15672" 
+              href={typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? `http://${window.location.hostname}:15672` : 'http://localhost:15672'} 
               target="_blank" 
               rel="noreferrer" 
               className="btn btn-secondary"
