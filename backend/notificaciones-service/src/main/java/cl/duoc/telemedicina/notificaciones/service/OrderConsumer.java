@@ -14,7 +14,7 @@ public class OrderConsumer {
      * Consumidor principal: Recibe órdenes de la cola principal.
      * Simula fallos aleatorios para demostrar el DLX.
      */
-    @RabbitListener(queues = RabbitMQConfig.ORDERS_QUEUE, containerFactory = "orderListenerFactory")
+    @RabbitListener(id = "order-listener", queues = RabbitMQConfig.ORDERS_QUEUE, containerFactory = "orderListenerFactory")
     public void processOrder(
             String message,
             Channel channel,

@@ -38,6 +38,7 @@ export default function RabbitMQLogging() {
   const [newQueueName, setNewQueueName] = useState('');
   const [newExchangeName, setNewExchangeName] = useState('');
   const [listenerStatus, setListenerStatus] = useState({ orderListener: 'ACTIVE' });
+  const [queueActionStatus, setQueueActionStatus] = useState(null);
 
   const tryFetch = async (urls, options) => {
     let lastError = null;
@@ -60,10 +61,10 @@ export default function RabbitMQLogging() {
     throw lastError || new Error('No se pudo conectar a ningún endpoint de backend.');
   };
 
-  const addLogEntry = (type, text, details, isError = false) => {
+  const addLogEntry = (type, text, details, isError = false, isWarning = false) => {
     const timestamp = new Date().toLocaleTimeString();
     setLogsList((prev) => [
-      { id: Date.now() + Math.random(), timestamp, type, text, details, isError },
+      { id: Date.now() + Math.random(), timestamp, type, text, details, isError, isWarning },
       ...prev.slice(0, 49)
     ]);
   };
@@ -133,26 +134,46 @@ export default function RabbitMQLogging() {
 
       addLogEntry('ORDER', `Orden enviada: ${orderId}`, `Cliente: ${customerName} | Sent to orders.exchange`);
 
-      // Simular resolución de Ack/Nack por parte del consumidor con fallo aleatorio (DLX)
+      // Simular resolución de Ack/Nack por parte del consumidor considerando estado de listener
       setTimeout(() => {
-        const isSuccess = Math.random() > 0.4;
-        setOrders((prevOrders) =>
-          prevOrders.map((o) =>
-            o.id === orderId
-              ? {
-                  ...o,
-                  status: isSuccess ? 'PROCESADA (Ack Exitoso)' : 'FALLIDA -> EN DLQ (Nack Cuarentena)'
-                }
-              : o
-          )
-        );
-
-        if (isSuccess) {
-          setStats((prev) => ({ ...prev, success: prev.success + 1 }));
-          addLogEntry('INFO', `Orden ${orderId} procesada con éxito`, `Ack manual recibido por el worker.`);
+        if (listenerStatus.orderListener === 'PAUSED') {
+          setOrders((prevOrders) =>
+            prevOrders.map((o) =>
+              o.id === orderId
+                ? {
+                    ...o,
+                    status: 'EN ESPERA (Listener en Pausa)'
+                  }
+                : o
+            )
+          );
+          addLogEntry(
+            'WARNING',
+            `Orden ${orderId} en espera de procesamiento`,
+            `El listener 'order-listener' está en PAUSA. La orden permanece encolada sin ser procesada hasta reanudar el consumidor.`,
+            false,
+            true
+          );
         } else {
-          setStats((prev) => ({ ...prev, failed: prev.failed + 1 }));
-          addLogEntry('ERROR', `Orden ${orderId} falló y fue enviada a DLQ`, `Nack con requeue=false -> orders.dlx -> orders.dlq`, true);
+          const isSuccess = Math.random() > 0.4;
+          setOrders((prevOrders) =>
+            prevOrders.map((o) =>
+              o.id === orderId
+                ? {
+                    ...o,
+                    status: isSuccess ? 'PROCESADA (Ack Exitoso)' : 'FALLIDA -> EN DLQ (Nack Cuarentena)'
+                  }
+                : o
+            )
+          );
+
+          if (isSuccess) {
+            setStats((prev) => ({ ...prev, success: prev.success + 1 }));
+            addLogEntry('INFO', `Orden ${orderId} procesada con éxito`, `Ack manual recibido por el worker.`);
+          } else {
+            setStats((prev) => ({ ...prev, failed: prev.failed + 1 }));
+            addLogEntry('ERROR', `Orden ${orderId} falló y fue enviada a DLQ`, `Nack con requeue=false -> orders.dlx -> orders.dlq`, true);
+          }
         }
       }, 2000);
 
@@ -234,18 +255,44 @@ export default function RabbitMQLogging() {
   const handleCreateQueue = async () => {
     if (!newQueueName.trim()) return;
     setLoading(true);
+    setQueueActionStatus(null);
+    const queueToCreate = newQueueName.trim();
     const candidateUrls = [
-      `/api/rabbitmq/queues?queueName=${newQueueName}`,
-      `/api/bff/rabbitmq/queues?queueName=${newQueueName}`,
-      `http://localhost:8080/api/rabbitmq/queues?queueName=${newQueueName}`,
-      `http://localhost:8084/api/rabbitmq/queues?queueName=${newQueueName}`
+      `/api/rabbitmq/queues?queueName=${encodeURIComponent(queueToCreate)}`,
+      `/api/bff/rabbitmq/queues?queueName=${encodeURIComponent(queueToCreate)}`,
+      `http://localhost:8080/api/rabbitmq/queues?queueName=${encodeURIComponent(queueToCreate)}`,
+      `http://localhost:8084/api/rabbitmq/queues?queueName=${encodeURIComponent(queueToCreate)}`
     ];
     try {
       const res = await tryFetch(candidateUrls, { method: 'POST' });
-      addLogEntry('ADMIN', `Cola '${newQueueName}' creada dinámicamente`, res.text);
+      const isPaused = listenerStatus.orderListener === 'PAUSED';
+
+      if (isPaused) {
+        setQueueActionStatus({
+          type: 'warning',
+          message: `Cola '${queueToCreate}' creada en estado PAUSADO (Control Dinámico detenido)`
+        });
+        addLogEntry(
+          'WARNING',
+          `Cola '${queueToCreate}' declarada (En Pausa)`,
+          `Advertencia: El Control Dinámico de Listeners está en PAUSA. La cola fue declarada en RabbitMQ, pero no procesará mensajes activos hasta reanudar el listener.`,
+          false,
+          true
+        );
+      } else {
+        setQueueActionStatus({
+          type: 'success',
+          message: `Cola '${queueToCreate}' creada y lista para operar`
+        });
+        addLogEntry('ADMIN', `Cola '${queueToCreate}' creada dinámicamente`, res.text || `Cola '${queueToCreate}' creada exitosamente`);
+      }
       setNewQueueName('');
     } catch (err) {
-      addLogEntry('ERROR', `Error al crear cola`, err.message, true);
+      setQueueActionStatus({
+        type: 'error',
+        message: `Error al crear cola: ${err.message}`
+      });
+      addLogEntry('ERROR', `Error al crear cola '${queueToCreate}'`, err.message, true);
     } finally {
       setLoading(false);
     }
@@ -262,8 +309,25 @@ export default function RabbitMQLogging() {
     ];
     try {
       const res = await tryFetch(candidateUrls, { method: 'POST' });
-      setListenerStatus({ orderListener: action === 'pause' ? 'PAUSED' : 'ACTIVE' });
-      addLogEntry('ADMIN', `Listener '${listenerId}' -> ${action.toUpperCase()}`, res.text);
+      const newStatus = action === 'pause' ? 'PAUSED' : 'ACTIVE';
+      setListenerStatus({ orderListener: newStatus });
+
+      if (newStatus === 'PAUSED') {
+        addLogEntry('ADMIN', `Listener '${listenerId}' -> PAUSADO`, 'El consumidor dinámico fue detenido. Los mensajes y gestiones creadas permanecerán sin consumo activo hasta reanudar.', false, true);
+      } else {
+        addLogEntry('ADMIN', `Listener '${listenerId}' -> REANUDADO`, 'El consumidor dinámico fue activado. Se reanuda el procesamiento de órdenes y colas.');
+        // Reactivar órdenes que estaban en espera por la pausa
+        setOrders((prevOrders) =>
+          prevOrders.map((o) =>
+            o.status.includes('Listener en Pausa')
+              ? {
+                  ...o,
+                  status: 'PROCESADA (Reanudada tras Pausa)'
+                }
+              : o
+          )
+        );
+      }
     } catch (err) {
       addLogEntry('ERROR', `Error al cambiar estado de listener`, err.message, true);
     } finally {
@@ -291,8 +355,10 @@ export default function RabbitMQLogging() {
 
           <div style={{ display: 'flex', gap: '12px' }}>
             {(() => {
+              const backendPublicIp = '54.161.129.162';
               const backendHost = import.meta.env.VITE_BACKEND_HOST;
-              const host = backendHost || (typeof window !== 'undefined' ? window.location.hostname : 'localhost');
+              const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+              const host = backendHost || (isLocal ? 'localhost' : backendPublicIp);
               const rabbitMqUrl = `http://${host}:15672`;
               return (
                 <a 
@@ -323,7 +389,7 @@ export default function RabbitMQLogging() {
               fontWeight: 600
             }}
           >
-            <ShieldAlert size={16} /> Guía 3: DLX / DLQ & Resiliencia de Órdenes
+            <ShieldAlert size={16} />  DLX / DLQ & Resiliencia de Órdenes
           </button>
 
           <button 
@@ -336,7 +402,7 @@ export default function RabbitMQLogging() {
               fontWeight: 600
             }}
           >
-            <Radio size={16} /> Guías 1 y 2: DirectExchange & Logging System
+            <Radio size={16} /> DirectExchange & Logging System
           </button>
 
           <button 
@@ -349,7 +415,7 @@ export default function RabbitMQLogging() {
               fontWeight: 600
             }}
           >
-            <Sliders size={16} /> Guía 4: RabbitAdmin & Control Dinámico
+            <Sliders size={16} />  RabbitAdmin & Control Dinámico
           </button>
         </div>
       </div>
@@ -425,8 +491,22 @@ export default function RabbitMQLogging() {
                     style={{
                       padding: '16px',
                       borderRadius: '8px',
-                      background: order.status.includes('FALLIDA') ? 'rgba(239, 68, 68, 0.1)' : order.status.includes('PROCESADA') ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.03)',
-                      borderLeft: `4px solid ${order.status.includes('FALLIDA') ? '#ef4444' : order.status.includes('PROCESADA') ? '#10b981' : '#3b82f6'}`,
+                      background: order.status.includes('FALLIDA') 
+                        ? 'rgba(239, 68, 68, 0.1)' 
+                        : order.status.includes('Pausa') || order.status.includes('ESPERA')
+                          ? 'rgba(245, 158, 11, 0.12)'
+                          : order.status.includes('PROCESADA') 
+                            ? 'rgba(16, 185, 129, 0.1)' 
+                            : 'rgba(255,255,255,0.03)',
+                      borderLeft: `4px solid ${
+                        order.status.includes('FALLIDA') 
+                          ? '#ef4444' 
+                          : order.status.includes('Pausa') || order.status.includes('ESPERA')
+                            ? '#f59e0b'
+                            : order.status.includes('PROCESADA') 
+                              ? '#10b981' 
+                              : '#3b82f6'
+                      }`,
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
@@ -446,7 +526,13 @@ export default function RabbitMQLogging() {
                     </div>
 
                     <span className="badge" style={{
-                      background: order.status.includes('FALLIDA') ? '#ef4444' : order.status.includes('PROCESADA') ? '#10b981' : '#3b82f6',
+                      background: order.status.includes('FALLIDA') 
+                        ? '#ef4444' 
+                        : order.status.includes('Pausa') || order.status.includes('ESPERA')
+                          ? '#d97706'
+                          : order.status.includes('PROCESADA') 
+                            ? '#10b981' 
+                            : '#3b82f6',
                       color: '#fff',
                       padding: '4px 12px',
                       fontSize: '0.75rem'
@@ -538,13 +624,46 @@ export default function RabbitMQLogging() {
           
           {/* Dynamic Queue Creation */}
           <div className="glass-card" style={{ padding: '24px' }}>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <PlusCircle size={20} color="#34d399" />
-              Gestión Programática (RabbitAdmin)
-            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <PlusCircle size={20} color="#34d399" />
+                Gestión Programática (RabbitAdmin)
+              </h3>
+              <span className="badge" style={{
+                background: listenerStatus.orderListener === 'PAUSED' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+                color: listenerStatus.orderListener === 'PAUSED' ? '#fbbf24' : '#34d399',
+                border: `1px solid ${listenerStatus.orderListener === 'PAUSED' ? '#f59e0b' : '#10b981'}`,
+                padding: '4px 10px',
+                fontSize: '0.75rem',
+                fontWeight: 600
+              }}>
+                {listenerStatus.orderListener === 'PAUSED' ? 'MODO PAUSADO' : 'MODO ACTIVO'}
+              </span>
+            </div>
+
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
               Crea colas dinámicamente en tiempo de ejecución utilizando <code>rabbitAdmin.declareQueue()</code>.
             </p>
+
+            {listenerStatus.orderListener === 'PAUSED' && (
+              <div style={{
+                padding: '10px 14px',
+                marginBottom: '16px',
+                background: 'rgba(245, 158, 11, 0.12)',
+                border: '1px solid rgba(245, 158, 11, 0.35)',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                fontSize: '0.85rem',
+                color: '#fbbf24'
+              }}>
+                <AlertTriangle size={18} />
+                <span>
+                  <strong>Control Dinámico en Pausa:</strong> El listener está detenido. Las gestiones y colas creadas permanecerán sin consumo activo hasta que se reanude.
+                </span>
+              </div>
+            )}
 
             <div style={{ display: 'flex', gap: '10px' }}>
               <input 
@@ -559,6 +678,38 @@ export default function RabbitMQLogging() {
                 Crear Cola
               </button>
             </div>
+
+            {queueActionStatus && (
+              <div style={{
+                marginTop: '14px',
+                padding: '10px 14px',
+                borderRadius: '8px',
+                fontSize: '0.85rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: queueActionStatus.type === 'warning' 
+                  ? 'rgba(245, 158, 11, 0.15)' 
+                  : queueActionStatus.type === 'error' 
+                    ? 'rgba(239, 68, 68, 0.15)' 
+                    : 'rgba(16, 185, 129, 0.15)',
+                border: `1px solid ${
+                  queueActionStatus.type === 'warning' 
+                    ? '#f59e0b' 
+                    : queueActionStatus.type === 'error' 
+                      ? '#ef4444' 
+                      : '#10b981'
+                }`,
+                color: queueActionStatus.type === 'warning' 
+                  ? '#fbbf24' 
+                  : queueActionStatus.type === 'error' 
+                    ? '#f87171' 
+                    : '#34d399'
+              }}>
+                {queueActionStatus.type === 'warning' ? <AlertTriangle size={16} /> : queueActionStatus.type === 'error' ? <AlertOctagon size={16} /> : <CheckCircle size={16} />}
+                <span>{queueActionStatus.message}</span>
+              </div>
+            )}
           </div>
 
           {/* Dynamic Listener Control */}
@@ -615,8 +766,18 @@ export default function RabbitMQLogging() {
               <div 
                 key={log.id} 
                 style={{ 
-                  background: log.isError ? 'rgba(220, 38, 38, 0.15)' : 'rgba(255, 255, 255, 0.04)',
-                  borderLeft: `4px solid ${log.isError ? '#ef4444' : '#38bdf8'}`,
+                  background: log.isError 
+                    ? 'rgba(220, 38, 38, 0.15)' 
+                    : log.isWarning 
+                      ? 'rgba(245, 158, 11, 0.15)' 
+                      : 'rgba(255, 255, 255, 0.04)',
+                  borderLeft: `4px solid ${
+                    log.isError 
+                      ? '#ef4444' 
+                      : log.isWarning 
+                        ? '#f59e0b' 
+                        : '#38bdf8'
+                  }`,
                   padding: '10px 14px',
                   borderRadius: '6px',
                   fontSize: '0.85rem'
@@ -624,7 +785,15 @@ export default function RabbitMQLogging() {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontWeight: 700 }}>[{log.timestamp}] {log.text}</span>
-                  <span className="badge" style={{ background: log.isError ? '#ef4444' : '#0284c7', color: '#fff', fontSize: '0.7rem' }}>
+                  <span className="badge" style={{ 
+                    background: log.isError 
+                      ? '#ef4444' 
+                      : log.isWarning 
+                        ? '#d97706' 
+                        : '#0284c7', 
+                    color: '#fff', 
+                    fontSize: '0.7rem' 
+                  }}>
                     {log.type}
                   </span>
                 </div>
