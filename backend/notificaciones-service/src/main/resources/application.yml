@@ -28,4 +28,6 @@ spring:
       type: simple
       simple:
         missing-queues-fatal: false
+        acknowledge-mode: manual
+
 

@@ -16,16 +16,22 @@ public class RabbitMQAdminController {
 
     @PostMapping("/queues")
     public ResponseEntity<String> createQueue(@RequestParam String queueName) {
-        resourceManager.createQueue(queueName);
+        if (queueName == null || queueName.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Error: El nombre de la cola no puede estar vacío.");
+        }
+        resourceManager.createQueue(queueName.trim());
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body("Cola '" + queueName + "' creada exitosamente");
+                .body("Cola '" + queueName.trim() + "' creada exitosamente");
     }
 
     @PostMapping("/exchanges")
     public ResponseEntity<String> createExchange(@RequestParam String exchangeName) {
-        resourceManager.createExchange(exchangeName);
+        if (exchangeName == null || exchangeName.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Error: El nombre del exchange no puede estar vacío.");
+        }
+        resourceManager.createExchange(exchangeName.trim());
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body("Exchange '" + exchangeName + "' creado exitosamente");
+                .body("Exchange '" + exchangeName.trim() + "' creado exitosamente");
     }
 
     @PostMapping("/bindings")
@@ -33,26 +39,63 @@ public class RabbitMQAdminController {
             @RequestParam String queueName,
             @RequestParam String exchangeName,
             @RequestParam String routingKey) {
-        resourceManager.createBinding(queueName, exchangeName, routingKey);
+        if (queueName == null || queueName.trim().isEmpty() ||
+            exchangeName == null || exchangeName.trim().isEmpty() ||
+            routingKey == null || routingKey.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Error: Los parámetros de binding (queueName, exchangeName, routingKey) no pueden estar vacíos.");
+        }
+        resourceManager.createBinding(queueName.trim(), exchangeName.trim(), routingKey.trim());
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body("Binding creado: " + queueName + " <-> " + exchangeName);
+                .body("Binding creado: " + queueName.trim() + " <-> " + exchangeName.trim());
     }
 
     @GetMapping("/queues/{queueName}")
     public ResponseEntity<?> getQueueInfo(@PathVariable String queueName) {
-        var info = resourceManager.getQueueInfo(queueName);
+        if (queueName == null || queueName.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Error: El nombre de la cola es inválido.");
+        }
+        var info = resourceManager.getQueueInfo(queueName.trim());
         return info != null ? ResponseEntity.ok(info) : ResponseEntity.notFound().build();
     }
 
     @DeleteMapping("/queues/{queueName}")
     public ResponseEntity<String> deleteQueue(@PathVariable String queueName) {
-        resourceManager.deleteQueue(queueName);
-        return ResponseEntity.ok("Cola '" + queueName + "' eliminada");
+        if (queueName == null || queueName.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Error: El nombre de la cola no puede estar vacío.");
+        }
+        resourceManager.deleteQueue(queueName.trim());
+        return ResponseEntity.ok("Cola '" + queueName.trim() + "' eliminada");
+    }
+
+    @DeleteMapping("/exchanges/{exchangeName}")
+    public ResponseEntity<String> deleteExchange(@PathVariable String exchangeName) {
+        if (exchangeName == null || exchangeName.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Error: El nombre del exchange no puede estar vacío.");
+        }
+        resourceManager.deleteExchange(exchangeName.trim());
+        return ResponseEntity.ok("Exchange '" + exchangeName.trim() + "' eliminado");
+    }
+
+    @DeleteMapping("/bindings")
+    public ResponseEntity<String> deleteBinding(
+            @RequestParam String queueName,
+            @RequestParam String exchangeName,
+            @RequestParam String routingKey) {
+        if (queueName == null || queueName.trim().isEmpty() ||
+            exchangeName == null || exchangeName.trim().isEmpty() ||
+            routingKey == null || routingKey.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Error: Los parámetros de binding (queueName, exchangeName, routingKey) no pueden estar vacíos.");
+        }
+        resourceManager.deleteBinding(queueName.trim(), exchangeName.trim(), routingKey.trim());
+        return ResponseEntity.ok("Binding eliminado: " + queueName.trim() + " <-> " + exchangeName.trim());
     }
 
     @PostMapping("/queues/{queueName}/purge")
     public ResponseEntity<String> purgeQueue(@PathVariable String queueName) {
-        resourceManager.purgeQueue(queueName);
-        return ResponseEntity.ok("Cola '" + queueName + "' purgada");
+        if (queueName == null || queueName.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Error: El nombre de la cola no puede estar vacío.");
+        }
+        resourceManager.purgeQueue(queueName.trim());
+        return ResponseEntity.ok("Cola '" + queueName.trim() + "' purgada");
     }
 }

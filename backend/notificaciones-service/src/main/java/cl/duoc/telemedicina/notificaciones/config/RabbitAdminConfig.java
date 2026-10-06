@@ -1,5 +1,6 @@
 package cl.duoc.telemedicina.notificaciones.config;
 
+import org.springframework.amqp.core.AcknowledgeMode;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -24,8 +25,10 @@ public class RabbitAdminConfig {
     public SimpleRabbitListenerContainerFactory orderListenerFactory(ConnectionFactory connectionFactory) {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
         factory.setConnectionFactory(connectionFactory);
+        factory.setAcknowledgeMode(AcknowledgeMode.MANUAL);
         factory.setConcurrentConsumers(1);
         factory.setMaxConcurrentConsumers(3);
         return factory;
     }
 }
+

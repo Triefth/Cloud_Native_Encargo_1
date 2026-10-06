@@ -70,6 +70,19 @@ public class RabbitResourceManager {
         }
     }
 
+    public void deleteBinding(String queueName, String exchangeName, String routingKey) {
+        try {
+            Binding binding = BindingBuilder
+                    .bind(new Queue(queueName))
+                    .to(new DirectExchange(exchangeName))
+                    .with(routingKey);
+            rabbitAdmin.removeBinding(binding);
+            System.out.println("[✓] Binding eliminado: " + queueName + " <-> " + exchangeName);
+        } catch (Exception e) {
+            System.err.println("[✗] Error al eliminar binding: " + e.getMessage());
+        }
+    }
+
     public void purgeQueue(String queueName) {
         try {
             int purged = rabbitAdmin.purgeQueue(queueName);
