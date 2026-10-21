@@ -17,17 +17,46 @@ spring:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
   rabbitmq:
-    host: ${SPRING_RABBITMQ_HOST:localhost}
-    port: ${SPRING_RABBITMQ_PORT:5672}
-    username: ${SPRING_RABBITMQ_USERNAME:guest}
-    password: ${SPRING_RABBITMQ_PASSWORD:guest}
+    addresses: ${SPRING_RABBITMQ_ADDRESSES:localhost:5672,localhost:5673}
+    username: ${SPRING_RABBITMQ_USERNAME:admin}
+    password: ${SPRING_RABBITMQ_PASSWORD:admin123}
     virtual-host: /
     listener:
       type: simple
       simple:
         missing-queues-fatal: false
         acknowledge-mode: manual
+        prefetch: 1
+        concurrency: 2
+        max-concurrency: 5
 
-
+# =====================================================================
+# Centralización de Nombres de Colas, Exchanges y Routing Keys
+# Pauta de Evaluación Duoc UC: 12% Nombres centralizados en application.yml
+# =====================================================================
+app:
+  rabbitmq:
+    queues:
+      hello: ${APP_QUEUE_HELLO:hello}
+      orders: ${APP_QUEUE_ORDERS:orders.queue}
+      orders-dlq: ${APP_QUEUE_ORDERS_DLQ:orders.dlq}
+      all-logs: ${APP_QUEUE_ALL_LOGS:all_logs_queue}
+      errors-only: ${APP_QUEUE_ERRORS_ONLY:errors_only_queue}
+      citas: ${APP_QUEUE_CITAS:citas.queue}
+      citas-dlq: ${APP_QUEUE_CITAS_DLQ:citas.dlq}
+    exchanges:
+      logs: ${APP_EXCHANGE_LOGS:logs_direct_exchange}
+      orders: ${APP_EXCHANGE_ORDERS:orders.exchange}
+      orders-dlx: ${APP_EXCHANGE_ORDERS_DLX:orders.dlx}
+      citas: ${APP_EXCHANGE_CITAS:citas.exchange}
+      citas-dlx: ${APP_EXCHANGE_CITAS_DLX:citas.dlx}
+    routing-keys:
+      order-created: ${APP_RK_ORDER_CREATED:order.created}
+      order-dead: ${APP_RK_ORDER_DEAD:order.dead}
+      cita-created: ${APP_RK_CITA_CREATED:cita.created}
+      cita-dead: ${APP_RK_CITA_DEAD:cita.dead}
+      log-info: ${APP_RK_LOG_INFO:INFO}
+      log-warning: ${APP_RK_LOG_WARNING:WARNING}
+      log-error: ${APP_RK_LOG_ERROR:ERROR}

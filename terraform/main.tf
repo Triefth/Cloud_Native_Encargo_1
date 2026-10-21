@@ -53,10 +53,18 @@ resource "aws_security_group" "backend_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Puerto expuesto por RabbitMQ Management (15672)
+  # Puerto expuesto por RabbitMQ Management Nodo 1 (15672)
   ingress {
     from_port   = 15672
     to_port     = 15672
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Puerto expuesto por RabbitMQ Management Nodo 2 (15673)
+  ingress {
+    from_port   = 15673
+    to_port     = 15673
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -92,6 +100,13 @@ resource "aws_security_group" "ec2_sg" {
   ingress {
     from_port   = 15672
     to_port     = 15672
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 15673
+    to_port     = 15673
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }

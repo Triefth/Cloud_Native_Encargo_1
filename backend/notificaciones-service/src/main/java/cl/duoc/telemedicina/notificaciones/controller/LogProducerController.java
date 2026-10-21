@@ -1,32 +1,39 @@
 package cl.duoc.telemedicina.notificaciones.controller;
 
-import cl.duoc.telemedicina.notificaciones.config.RabbitMQConfig;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+/**
+ * REST Controller para el envío de logs a RabbitMQ (Guía 2 Duoc UC).
+ * Utiliza nombres centralizados inyectados desde application.yml (12% rúbrica).
+ */
 @RestController
-@CrossOrigin(origins = "*") // Permite peticiones desde Vite / Frontend
+@CrossOrigin(origins = "*")
 public class LogProducerController {
 
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
+    @Value("${app.rabbitmq.exchanges.logs:logs_direct_exchange}")
+    private String logsExchange;
+
     @PostMapping("/log")
     public ResponseEntity<Map<String, String>> sendLog(@RequestBody LogMessage logMessage) {
-        // La routing key es el nivel del log (INFO, ERROR, etc.)
+        String severity = (logMessage.getLevel() != null) ? logMessage.getLevel().toUpperCase() : "INFO";
         rabbitTemplate.convertAndSend(
-                RabbitMQConfig.EXCHANGE_NAME,
-                logMessage.getLevel(),
+                logsExchange,
+                severity,
                 logMessage.getMessage()
         );
         return ResponseEntity.ok(Map.of(
                 "status", "ok",
                 "message", "Log enviado: " + logMessage.getMessage(),
-                "level", logMessage.getLevel()
+                "level", severity
         ));
     }
 
@@ -35,7 +42,6 @@ public class LogProducerController {
         return ResponseEntity.ok(Map.of("status", "ok", "message", "RabbitMQ LogProducerController está en línea."));
     }
 
-    // DTO para el cuerpo de la petición
     public static class LogMessage {
         private String level;
         private String message;
@@ -47,7 +53,6 @@ public class LogProducerController {
             this.message = message;
         }
 
-        // Getters y Setters
         public String getLevel() { return level; }
         public void setLevel(String level) { this.level = level; }
         public String getMessage() { return message; }

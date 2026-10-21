@@ -145,6 +145,37 @@ http://<FRONTEND_PUBLIC_IP>
 | Componente | Instancia EC2 | Puerto | Función |
 |---|---|---|---|
 | **BFF Gateway** | Backend EC2 | `8080` | Entrada principal a los microservicios y Spring Security |
-| **Microservicios (7)** | Backend EC2 | `8081-8087` | Lógica interna (Citas, Consultas, Fichas, etc.) |
+| **Microservicios (8)** | Backend EC2 | `8081-8087` | Lógica interna (Citas, Consultas, Fichas, Notificaciones, etc.) |
+| **RabbitMQ Nodo 1** | Backend EC2 | `5672` (AMQP) / `15672` (UI) | Nodo 1 del Cluster RabbitMQ (Admin: admin / admin123) |
+| **RabbitMQ Nodo 2** | Backend EC2 | `5673` (AMQP) / `15673` (UI) | Nodo 2 del Cluster RabbitMQ (Admin: admin / admin123) |
 | **Nginx Web Server** | Frontend EC2 | `80` | Entrega de bundle React SPA y proxy hacia Backend |
 | **SSH** | Ambas | `22` | Acceso seguro administrativo con llave SSH |
+
+---
+
+## 5. Verificación del Cluster de RabbitMQ (Evidencia EP2)
+
+Para verificar el estado del cluster en la máquina de Backend:
+
+```bash
+# Verificar estado del cluster desde el Nodo 1
+docker exec rabbitmq-1 rabbitmqctl cluster_status
+
+# Verificar estado del cluster desde el Nodo 2
+docker exec rabbitmq-2 rabbitmqctl cluster_status
+```
+
+**Salida esperada:**
+```
+Cluster status of node rabbit@rabbitmq-1 ...
+Basics
+Cluster name: rabbit@rabbitmq-1
+Nodes
+Disk Nodes: [rabbit@rabbitmq-1, rabbit@rabbitmq-2]
+Running Nodes: [rabbit@rabbitmq-1, rabbit@rabbitmq-2]
+```
+
+**Acceso a Dashboards para Evidencias:**
+- **Nodo 1:** `http://<BACKEND_PUBLIC_IP>:15672` *(admin / admin123)*
+- **Nodo 2:** `http://<BACKEND_PUBLIC_IP>:15673` *(admin / admin123)*
+

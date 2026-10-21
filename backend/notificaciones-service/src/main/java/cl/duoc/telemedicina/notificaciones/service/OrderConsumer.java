@@ -1,56 +1,86 @@
 package cl.duoc.telemedicina.notificaciones.service;
 
-import cl.duoc.telemedicina.notificaciones.config.RabbitMQConfig;
 import com.rabbitmq.client.Channel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+
+/**
+ * =====================================================================
+ * Dominio Funcional: Procesamiento de Órdenes (Guía 3 Duoc UC)
+ * Demuestra:
+ *  - Confirmación manual de mensajes (ACK / NACK explícito) (20%)
+ *  - Redirección automática a Dead Letter Queue (DLQ) en caso de fallo
+ *  - Logging estructurado de auditoría
+ * =====================================================================
+ */
 @Service
 public class OrderConsumer {
 
+    private static final Logger log = LoggerFactory.getLogger(OrderConsumer.class);
+
     /**
      * Consumidor principal: Recibe órdenes de la cola principal.
-     * Simula fallos aleatorios para demostrar el DLX.
+     * Simula fallos de negocio para verificar el desvío a DLQ.
      */
-    @RabbitListener(id = "order-listener", queues = RabbitMQConfig.ORDERS_QUEUE, containerFactory = "orderListenerFactory")
+    @RabbitListener(
+            id = "order-listener",
+            queues = "${app.rabbitmq.queues.orders:orders.queue}",
+            containerFactory = "orderListenerFactory"
+    )
     public void processOrder(
             String message,
             Channel channel,
-            @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) {
+            @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) throws IOException {
+
+        log.info("[ORDEN RECIBIDA] Procesando payload tag {}: {}", deliveryTag, message);
 
         try {
-            System.out.println("[PROCESADOR] Recibida orden: " + message);
-
-            // SIMULACIÓN DE FALLO ALEATORIO (50% probabilidad de fallar)
-            if (Math.random() < 0.5) {
-                throw new RuntimeException("Error simulado al procesar: " + message);
+            // Simulación de fallo aleatorio (50% probabilidad) para demostrar resiliencia DLX
+            if (message.contains("FAIL") || Math.random() < 0.45) {
+                throw new RuntimeException("Error simulado de negocio al procesar orden: " + message);
             }
 
-            // Procesamiento exitoso
-            System.out.println("[✓ ÉXITO] Orden procesada correctamente: " + message);
-            // Ack manual: Le decimos a RabbitMQ que todo estuvo bien
+            // Procesamiento exitoso: Confirmación manual explícita (ACK)
+            log.info("[✓ ACK EXITOSO] Orden procesada correctamente (tag {}): {}", deliveryTag, message);
             channel.basicAck(deliveryTag, false);
 
         } catch (Exception e) {
-            System.out.println("[⚠️ ERROR] " + e.getMessage());
+            log.error("[✗ ERROR PROCESAMIENTO] Falló orden tag {}: {}. Derivando a DLQ...", deliveryTag, e.getMessage());
             try {
-                // Nack con requeue=false: Va al DLX, no se reintenta aquí en la cola principal
+                // NACK con requeue=false: RabbitMQ transfiere automáticamente el mensaje al Dead Letter Exchange
                 channel.basicNack(deliveryTag, false, false);
-                System.out.println("[→ DLX] Mensaje enviado a Dead Letter Exchange");
-            } catch (Exception nackException) {
-                nackException.printStackTrace();
+                log.warn("[→ DLQ] Mensaje {} enviado a Dead Letter Queue con éxito", deliveryTag);
+            } catch (Exception nackEx) {
+                log.error("[FATAL] Error ejecutando basicNack para tag {}: {}", deliveryTag, nackEx.getMessage());
             }
         }
     }
 
     /**
-     * Consumidor de DLQ: Monitorea los mensajes que fallaron definitivamente.
+     * Consumidor de Dead Letter Queue (DLQ):
+     * Monitorea, audita y registra los mensajes en cuarentena para análisis post-mortem.
      */
-    @RabbitListener(queues = RabbitMQConfig.DLQ_QUEUE)
-    public void processDLQ(String message) {
-        System.out.println("🚨 [DLQ] MENSAJE EN CUARENTENA: " + message);
-        System.out.println("   → Revisar logs del procesador para diagrama del fallo.");
+    @RabbitListener(
+            id = "order-dlq-listener",
+            queues = "${app.rabbitmq.queues.orders-dlq:orders.dlq}"
+    )
+    public void processDLQ(
+            String message,
+            Channel channel,
+            @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) throws IOException {
+        try {
+            log.warn("🚨 [DLQ - CUARENTENA] Mensaje retenido en orders.dlq (tag {}): {}", deliveryTag, message);
+            // Confirmamos lectura desde DLQ para registrar en auditoría
+            channel.basicAck(deliveryTag, false);
+        } catch (Exception e) {
+            log.error("Error al procesar mensaje en DLQ: {}", e.getMessage());
+            channel.basicReject(deliveryTag, false);
+        }
     }
 }

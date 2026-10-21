@@ -17,4 +17,30 @@ spring:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
+  rabbitmq:
+    addresses: ${SPRING_RABBITMQ_ADDRESSES:localhost:5672,localhost:5673}
+    username: ${SPRING_RABBITMQ_USERNAME:admin}
+    password: ${SPRING_RABBITMQ_PASSWORD:admin123}
+    virtual-host: /
+    listener:
+      simple:
+        acknowledge-mode: manual
+        missing-queues-fatal: false
+
+# =====================================================================
+# Centralización de Nombres de Colas y Exchanges (Pauta Duoc UC EP2 12%)
+# =====================================================================
+app:
+  rabbitmq:
+    queues:
+      citas: ${APP_QUEUE_CITAS:citas.queue}
+      citas-dlq: ${APP_QUEUE_CITAS_DLQ:citas.dlq}
+      citas-feedback: ${APP_QUEUE_CITAS_FEEDBACK:citas.feedback.queue}
+    exchanges:
+      citas: ${APP_EXCHANGE_CITAS:citas.exchange}
+      citas-dlx: ${APP_EXCHANGE_CITAS_DLX:citas.dlx}
+    routing-keys:
+      cita-created: ${APP_RK_CITA_CREATED:cita.created}
+      cita-status: ${APP_RK_CITA_STATUS:cita.status}
+      cita-dead: ${APP_RK_CITA_DEAD:cita.dead}

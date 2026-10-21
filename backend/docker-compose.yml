@@ -29,6 +29,13 @@ services:
     build: ./citas-service
     ports:
       - "8081:8081"
+    environment:
+      - SPRING_RABBITMQ_ADDRESSES=rabbitmq-1:5672,rabbitmq-2:5672
+      - SPRING_RABBITMQ_USERNAME=admin
+      - SPRING_RABBITMQ_PASSWORD=admin123
+    depends_on:
+      - rabbitmq-1
+      - rabbitmq-2
 
   consultas-service:
     build: ./consultas-service
@@ -45,9 +52,12 @@ services:
     ports:
       - "8084:8084"
     environment:
-      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_ADDRESSES=rabbitmq-1:5672,rabbitmq-2:5672
+      - SPRING_RABBITMQ_USERNAME=admin
+      - SPRING_RABBITMQ_PASSWORD=admin123
     depends_on:
-      - rabbitmq
+      - rabbitmq-1
+      - rabbitmq-2
 
   reportes-service:
     build: ./reportes-service
@@ -64,23 +74,50 @@ services:
     ports:
       - "8087:8087"
 
-  rabbitmq:
-    image: rabbitmq:4.2-management
-    container_name: rabbitmq
+  rabbitmq-1:
+    image: rabbitmq:3.12-management-alpine
+    container_name: rabbitmq-1
+    hostname: rabbitmq-1
     ports:
-      - "5672:5672"   # AMQP Protocol Port
-      - "15672:15672" # Management UI Port
+      - "5672:5672"   # AMQP port
+      - "15672:15672" # Management UI
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+      RABBITMQ_ERLANG_COOKIE: "secret_cookie_value"
     volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - rabbitmq_data_1:/var/lib/rabbitmq
+      - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+    networks:
+      - default
+      - rabbitmq_cluster
+
+  rabbitmq-2:
+    image: rabbitmq:3.12-management-alpine
+    container_name: rabbitmq-2
+    hostname: rabbitmq-2
+    ports:
+      - "5673:5672"   # AMQP port (mapeado a 5673 en host)
+      - "15673:15672" # Management UI (mapeado a 15673 en host)
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+      RABBITMQ_ERLANG_COOKIE: "secret_cookie_value" # Mismo Cookie
+    volumes:
+      - rabbitmq_data_2:/var/lib/rabbitmq
+      - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+    depends_on:
+      - rabbitmq-1
+    networks:
+      - default
+      - rabbitmq_cluster
 
 volumes:
-  rabbitmq_data:
+  rabbitmq_data_1:
+  rabbitmq_data_2:
+
+networks:
+  default:
+  rabbitmq_cluster:
+    driver: bridge
 

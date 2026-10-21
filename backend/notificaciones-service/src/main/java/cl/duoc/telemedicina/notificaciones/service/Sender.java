@@ -1,50 +1,48 @@
 package cl.duoc.telemedicina.notificaciones.service;
 
-import cl.duoc.telemedicina.notificaciones.config.RabbitMQConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Productor (Sender) - Envía mensajes a la cola 'hello' (Guía 1)
+ * Productor (Sender) - Envía mensajes a la cola 'hello' (Guía 1 Duoc UC).
+ * Utiliza configuración centralizada vía application.yml.
  */
 @Component
 public class Sender {
 
+    private static final Logger log = LoggerFactory.getLogger(Sender.class);
+
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
+    @Value("${app.rabbitmq.queues.hello:hello}")
+    private String helloQueue;
+
     public void sendMessage(String message) {
         try {
-            String timestamp = LocalDateTime.now()
-                    .format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"));
+            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS"));
+            String fullMessage = String.format("[%s] %s", timestamp, message);
 
-            String fullMessage = String.format(
-                    "[%s] %s",
-                    timestamp,
-                    message
-            );
-
-            // Enviar el mensaje a la cola 'hello'
-            rabbitTemplate.convertAndSend(RabbitMQConfig.HELLO_QUEUE, fullMessage);
-            System.out.println("[✓] Mensaje enviado: '" + fullMessage + "'");
+            rabbitTemplate.convertAndSend(helloQueue, fullMessage);
+            log.info("[✓] Mensaje enviado a '{}': '{}'", helloQueue, fullMessage);
         } catch (Exception e) {
-            System.err.println("[✗] Error enviando mensaje: " + e.getMessage());
-            e.printStackTrace();
+            log.error("[✗] Error enviando mensaje a '{}': {}", helloQueue, e.getMessage());
         }
     }
 
     public void sendMessage(String exchange, String routingKey, String message) {
         try {
             rabbitTemplate.convertAndSend(exchange, routingKey, message);
-            System.out.println("[✓] Mensaje enviado a exchange='" + exchange
-                    + "', routingKey='" + routingKey + "': '" + message + "'");
+            log.info("[✓] Mensaje enviado a exchange='{}', routingKey='{}': '{}'", exchange, routingKey, message);
         } catch (Exception e) {
-            System.err.println("[✗] Error enviando mensaje: " + e.getMessage());
-            e.printStackTrace();
+            log.error("[✗] Error enviando mensaje a exchange '{}': {}", exchange, e.getMessage());
         }
     }
 }

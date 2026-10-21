@@ -19,10 +19,12 @@ sudo systemctl enable docker
 sudo systemctl start docker
 sudo usermod -aG docker ubuntu
 
-# 3. Configurar Firewall UFW (SSH: 22, BFF Gateway: 8080)
+# 3. Configurar Firewall UFW (SSH: 22, BFF Gateway: 8080, RabbitMQ UI 1 & 2: 15672, 15673)
 echo "=== Configurando Firewall UFW ==="
 sudo ufw allow 22/tcp
 sudo ufw allow 8080/tcp
+sudo ufw allow 15672/tcp
+sudo ufw allow 15673/tcp
 echo "y" | sudo ufw enable || true
 
 # 4. Iniciar automáticamente los microservicios si existe docker-compose.yml

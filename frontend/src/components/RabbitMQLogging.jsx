@@ -353,25 +353,41 @@ export default function RabbitMQLogging() {
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             {(() => {
               const backendPublicIp = '54.161.129.162';
               const backendHost = import.meta.env.VITE_BACKEND_HOST;
               const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
               const host = backendHost || (isLocal ? 'localhost' : backendPublicIp);
-              const rabbitMqUrl = `http://${host}:15672`;
+              const rabbitMqUrl1 = `http://${host}:15672`;
+              const rabbitMqUrl2 = `http://${host}:15673`;
               return (
-                <a 
-                  href={rabbitMqUrl} 
-                  target="_blank" 
-                  rel="noreferrer" 
-                  className="btn btn-secondary"
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}
-                >
-                  <Server size={16} />
-                  RabbitMQ Management (15672)
-                  <ExternalLink size={14} />
-                </a>
+                <>
+                  <a 
+                    href={rabbitMqUrl1} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    className="btn btn-secondary"
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}
+                    title="Usuario: admin / Contraseña: admin123"
+                  >
+                    <Server size={16} color="#34d399" />
+                    Cluster Nodo 1 (15672)
+                    <ExternalLink size={14} />
+                  </a>
+                  <a 
+                    href={rabbitMqUrl2} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    className="btn btn-secondary"
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}
+                    title="Usuario: admin / Contraseña: admin123"
+                  >
+                    <Server size={16} color="#38bdf8" />
+                    Cluster Nodo 2 (15673)
+                    <ExternalLink size={14} />
+                  </a>
+                </>
               );
             })()}
           </div>

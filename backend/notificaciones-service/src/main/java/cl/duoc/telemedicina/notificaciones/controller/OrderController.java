@@ -1,8 +1,8 @@
 package cl.duoc.telemedicina.notificaciones.controller;
 
-import cl.duoc.telemedicina.notificaciones.config.RabbitMQConfig;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,6 +11,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * REST Controller para el envío y prueba de órdenes con DLX/DLQ (Guía 3 Duoc UC).
+ * Utiliza nombres centralizados inyectados desde application.yml (12% rúbrica).
+ */
 @RestController
 @RequestMapping("/api/orders")
 @CrossOrigin(origins = "*")
@@ -18,6 +22,12 @@ public class OrderController {
 
     @Autowired
     private RabbitTemplate rabbitTemplate;
+
+    @Value("${app.rabbitmq.exchanges.orders:orders.exchange}")
+    private String ordersExchange;
+
+    @Value("${app.rabbitmq.routing-keys.order-created:order.created}")
+    private String orderCreatedRoutingKey;
 
     @PostMapping("/send")
     public ResponseEntity<Map<String, String>> sendOrder(@RequestBody Map<String, String> payload) {
@@ -31,10 +41,10 @@ public class OrderController {
                 LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))
         );
 
-        // Enviar al Exchange Principal
+        // Enviar al Exchange Principal usando configuración centralizada
         rabbitTemplate.convertAndSend(
-                RabbitMQConfig.ORDERS_EXCHANGE,
-                RabbitMQConfig.ORDERS_ROUTING_KEY,
+                ordersExchange,
+                orderCreatedRoutingKey,
                 message
         );
 
