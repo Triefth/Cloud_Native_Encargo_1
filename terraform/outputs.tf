@@ -43,3 +43,13 @@ output "azure_backend_scope_read" {
   description = "Scope read completo para MSAL"
   value       = "${var.backend_api_identifier_uri}/read"
 }
+
+output "kafka_ui_url" {
+  description = "URL para acceder a Kafka UI en el puerto 8090"
+  value       = "http://${aws_eip.backend_eip.public_ip}:8090"
+}
+
+output "kafka_service_url" {
+  description = "URL para acceder al microservicio Kafka / Pipeline en el puerto 8888"
+  value       = "http://${aws_eip.backend_eip.public_ip}:8888"
+}

@@ -148,6 +148,10 @@ http://<FRONTEND_PUBLIC_IP>
 | **Microservicios (8)** | Backend EC2 | `8081-8087` | Lógica interna (Citas, Consultas, Fichas, Notificaciones, etc.) |
 | **RabbitMQ Nodo 1** | Backend EC2 | `5672` (AMQP) / `15672` (UI) | Nodo 1 del Cluster RabbitMQ (Admin: admin / admin123) |
 | **RabbitMQ Nodo 2** | Backend EC2 | `5673` (AMQP) / `15673` (UI) | Nodo 2 del Cluster RabbitMQ (Admin: admin / admin123) |
+| **Kafka UI** | Backend EC2 | `8090` | Monitoreo visual de tópicos, particiones, offsets y consumidores en vivo |
+| **Kafka Service** | Backend EC2 | `8888` | Microservicio de Kafka Streams y Pipeline de Eventos en tiempo real |
+| **Kafka Broker** | Backend EC2 | `9092` | Servidor de mensajería Apache Kafka (Confluent 7.5.0) |
+| **ZooKeeper** | Backend EC2 | `2181` | Coordinador de metadatos del clúster Kafka |
 | **Nginx Web Server** | Frontend EC2 | `80` | Entrega de bundle React SPA y proxy hacia Backend |
 | **SSH** | Ambas | `22` | Acceso seguro administrativo con llave SSH |
 
@@ -178,4 +182,71 @@ Running Nodes: [rabbit@rabbitmq-1, rabbit@rabbitmq-2]
 **Acceso a Dashboards para Evidencias:**
 - **Nodo 1:** `http://<BACKEND_PUBLIC_IP>:15672` *(admin / admin123)*
 - **Nodo 2:** `http://<BACKEND_PUBLIC_IP>:15673` *(admin / admin123)*
+
+---
+
+## 6. Verificación de Apache Kafka y Kafka Streams (Guías Duoc UC)
+
+El backend incorpora soporte nativo para **Apache Kafka**, **ZooKeeper**, **Kafka UI** y **Kafka Streams**.
+
+### 6.1 Acceso a Kafka UI (Dashboard Cloud)
+Abre en tu navegador web:
+`http://<BACKEND_PUBLIC_IP>:8090`
+- Verifica los topics creados:
+  - `tutorial-particiones` (3 particiones, replication factor 1)
+  - `banco-transacciones` (3 particiones)
+  - `banco-alertas` (3 particiones)
+- En la pestaña **Consumers**, revisa el grupo `mi-grupo-educativo` y el registro de offsets.
+
+### 6.2 Pruebas de Guía 2: Particiones, Offsets y Sticky Partitioning
+
+**Prueba 1: Distribución Round Robin (Sin Key)**
+Envía 3 mensajes sin clave:
+```bash
+curl "http://<BACKEND_PUBLIC_IP>:8080/api/kafka/send?message=Mensaje1"
+curl "http://<BACKEND_PUBLIC_IP>:8080/api/kafka/send?message=Mensaje2"
+curl "http://<BACKEND_PUBLIC_IP>:8080/api/kafka/send?message=Mensaje3"
+```
+*Resultado: Kafka reparte los mensajes equitativamente entre las particiones 0, 1 y 2.*
+
+**Prueba 2: Orden Garantizado con Key (Sticky Partitioning)**
+Envía el ciclo de una orden con la misma clave `orden-555`:
+```bash
+curl "http://<BACKEND_PUBLIC_IP>:8080/api/kafka/send?message=Paso1-Creada&key=orden-555"
+curl "http://<BACKEND_PUBLIC_IP>:8080/api/kafka/send?message=Paso2-Pagada&key=orden-555"
+curl "http://<BACKEND_PUBLIC_IP>:8080/api/kafka/send?message=Paso3-Enviada&key=orden-555"
+```
+*Resultado: Todos los mensajes van a la misma partición con offsets incrementales (1, 2, 3), garantizando que no se procesen desordenados.*
+
+### 6.3 Pruebas de Guía 1: Pipeline de Kafka Streams (Detección de Fraude)
+
+**Caso 1: Transacción Normal (Monto $500 -> Sin Alerta)**
+```bash
+curl -X POST http://<BACKEND_PUBLIC_IP>:8080/api/banco/transaccion \
+  -H "Content-Type: application/json" \
+  -d '{"usuario": "juan", "monto": 500, "origen": "app"}'
+```
+*Consola del microservicio: `✅ Transacción procesada: 500.0` (Pasa el filtro de $10 pero no genera alerta).*
+
+**Caso 2: Transacción Fraudulenta (Monto $15,000 -> Genera Alerta de Fraude)**
+```bash
+curl -X POST http://<BACKEND_PUBLIC_IP>:8080/api/banco/transaccion \
+  -H "Content-Type: application/json" \
+  -d '{"usuario": "juan", "monto": 15000, "origen": "cajero"}'
+```
+*Consola del microservicio:*
+```
+✅ Transacción procesada: 15000.0
+🚨 ALERTA GENERADA: Transacción inusualmente alta en cajero
+```
+*Kafka UI:* Ve al topic `banco-alertas` -> Pestaña **Messages** para visualizar el evento transformado con severidad `"ALTA"`.
+
+**Caso 3: Transacción Filtrada (Monto $5 -> Ignorada)**
+```bash
+curl -X POST http://<BACKEND_PUBLIC_IP>:8080/api/banco/transaccion \
+  -H "Content-Type: application/json" \
+  -d '{"usuario": "juan", "monto": 5, "origen": "app"}'
+```
+*Consola: Filtrada silenciosamente por la regla `tx.getMonto() > 10`.*
+
 

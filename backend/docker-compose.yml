@@ -16,6 +16,7 @@ services:
       - REPORTES_SERVICE_URL=http://reportes-service:8085
       - USUARIOS_SERVICE_URL=http://usuarios-service:8086
       - CLINICAS_SERVICE_URL=http://clinicas-service:8087
+      - KAFKA_SERVICE_URL=http://kafka-service:8888
     depends_on:
       - citas-service
       - consultas-service
@@ -24,6 +25,7 @@ services:
       - reportes-service
       - usuarios-service
       - clinicas-service
+      - kafka-service
 
   citas-service:
     build: ./citas-service
@@ -73,6 +75,55 @@ services:
     build: ./clinicas-service
     ports:
       - "8087:8087"
+
+  kafka-service:
+    build: ./kafka-service
+    container_name: kafka-service
+    ports:
+      - "8888:8888"
+    environment:
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+    depends_on:
+      - kafka
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
+    hostname: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    hostname: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    depends_on:
+      - kafka
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
 
   rabbitmq-1:
     image: rabbitmq:3.12-management-alpine

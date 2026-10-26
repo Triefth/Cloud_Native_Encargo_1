@@ -14,7 +14,8 @@ import {
   ArrowRight,
   Stethoscope,
   Key,
-  Radio
+  Radio,
+  Cpu
 } from 'lucide-react';
 
 export default function UserHome({ activeToken, onNavigate, bffStatus }) {
@@ -88,6 +89,13 @@ export default function UserHome({ activeToken, onNavigate, bffStatus }) {
       desc: 'Enrutamiento de eventos con DirectExchange y Routing Keys (INFO, WARN, ERROR).', 
       icon: Radio,
       color: '#38bdf8'
+    },
+    { 
+      id: 'kafka', 
+      title: 'Kafka Streams & Pipeline', 
+      desc: 'Particiones, offsets, Sticky Partitioning y detección de fraude en tiempo real.', 
+      icon: Cpu,
+      color: 'var(--accent-teal)'
     },
     { 
       id: 'reportes', 

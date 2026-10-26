@@ -181,3 +181,29 @@ export const reportesApi = {
       body: JSON.stringify(reporte),
     }),
 };
+
+// Kafka Topics & Partitions Service (Guía 2)
+export const kafkaApi = {
+  send: (message, key) => {
+    const params = new URLSearchParams({ message });
+    if (key) params.append('key', key);
+    return apiRequest(`/kafka/send?${params.toString()}`);
+  },
+  getMessages: () => apiRequest('/kafka/messages'),
+  clearMessages: () => apiRequest('/kafka/messages', { method: 'DELETE' }),
+  health: () => apiRequest('/kafka/health'),
+};
+
+// Banco & Kafka Streams Pipeline Service (Guía 1)
+export const bancoApi = {
+  sendTransaccion: (transaccion) =>
+    apiRequest('/banco/transaccion', {
+      method: 'POST',
+      body: JSON.stringify(transaccion),
+    }),
+  getAlertas: () => apiRequest('/banco/alertas'),
+  clearAlertas: () => apiRequest('/banco/alertas', { method: 'DELETE' }),
+  getTransacciones: () => apiRequest('/banco/transacciones'),
+  health: () => apiRequest('/banco/health'),
+};
+

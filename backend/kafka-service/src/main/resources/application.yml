@@ -1,0 +1,59 @@
+server:
+  port: 8888
+
+spring:
+  application:
+    name: kafka-tutorial
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}}
+    consumer:
+      group-id: mi-grupo-educativo
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      enable-auto-commit: true
+      properties:
+        spring.json.trusted.packages: "*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        spring.json.trusted.packages: "*"
+    streams:
+      application-id: banco-pipeline-app
+      properties:
+        default.key.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+        default.value.serde: org.springframework.kafka.support.serializer.JsonSerde
+        spring.json.trusted.packages: "*"
+
+kafka:
+  bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}}
+  consumer:
+    group-id: mi-grupo-educativo
+    auto-offset-reset: earliest
+    key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    enable-auto-commit: true
+  producer:
+    key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    value-serializer: org.apache.kafka.common.serialization.StringSerializer
+  streams:
+    application-id: banco-pipeline-app
+    properties:
+      default.key.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+      default.value.serde: org.springframework.kafka.support.serializer.JsonSerde
+      spring.json.trusted.packages: "*"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+logging:
+  level:
+    root: INFO
+    org.springframework.kafka: INFO
+    com.kafka: INFO
+    com.banco: INFO
+    org.apache.kafka.streams: INFO

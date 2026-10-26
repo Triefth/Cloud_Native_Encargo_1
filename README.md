@@ -49,17 +49,19 @@ Ubicación: `frontend/`
   5. **Fichas Médicas (`FichasManager`):** Historial clínico del paciente y registro de atenciones con integración EHR.
   6. **Pacientes & Médicos (`UsuariosManager`):** Maestro de usuarios y catálogo por especialidad médica.
   7. **Notificaciones (`NotificacionesManager`):** Envío de SMS, WhatsApp y correos electrónicos anti no-show.
-  8. **Clínicas Rurales (`ClinicasManager`):** Catálogo de clínicas afiliadas y configuración de conectores EHR externos.
-  9. **Reportes Operativos (`ReportesDashboard`):** Métricas operativas, gráficos de disponibilidad y auditoría de eventos.
+  8. **RabbitMQ Logging (`RabbitMQLogging`):** Enrutamiento AMQP con DirectExchange, Routing Keys y DLQ.
+  9. **Kafka Streams & Pipeline (`KafkaStreamsManager`):** Particiones, offsets, Sticky Partitioning (Guía 2) y pipeline de detección de fraude en tiempo real (Guía 1).
+  10. **Clínicas Rurales (`ClinicasManager`):** Catálogo de clínicas afiliadas y configuración de conectores EHR externos.
+  11. **Reportes Operativos (`ReportesDashboard`):** Métricas operativas, gráficos de disponibilidad y auditoría de eventos.
 
 ---
 
 ### 2. Backend en Microservicios (Java 17 / Spring Boot 3)
 Ubicación: `backend/`
 
-Consta de **8 Microservicios independientes** con arquitectura desacoplada:
+Consta de **Microservicios independientes** con arquitectura desacoplada, mensajería AMQP y streaming de eventos:
 
-| Microservicio | Puerto | Descripción y Responsabilidad |
+| Microservicio / Componente | Puerto | Descripción y Responsabilidad |
 |---|---|---|
 | `bff-service` | `8080` | **Backend for Frontend (BFF)**: Resource Server Spring Security con validación JWKS de Microsoft Entra, enrutamiento a microservicios y manejo controlado de fallas (`503 Service Unavailable`). |
 | `citas-service` | `8081` | **Agenda de Citas**: Programación, confirmación, cancelación y reprogramación de atenciones médicas. |
@@ -69,6 +71,10 @@ Consta de **8 Microservicios independientes** con arquitectura desacoplada:
 | `reportes-service` | `8085` | **Informes Operativos**: Registro auditado de eventos del sistema, métricas de latencia y disponibilidad. |
 | `usuarios-service` | `8086` | **Maestro de Usuarios**: Fuente única de verdad para Pacientes, Médicos Voluntarios y Especialidades médicas. |
 | `clinicas-service` | `8087` | **Gestor de Clínicas Rurales**: Catálogo de centros de salud afiliados y configuración de credenciales/endpoints de ficha clínica. |
+| `kafka-service` | `8888` | **Kafka & Event Streaming**: Topics con 3 particiones, Sticky Partitioning (`/api/kafka/send`) y pipeline de Kafka Streams para detección de transacciones sospechosas (`/api/banco/transaccion`). |
+| `kafka-ui` | `8090` | **Kafka UI**: Dashboard web visual para inspeccionar topics (`tutorial-particiones`, `banco-alertas`), particiones, offsets y consumer groups. |
+| `kafka` | `9092` | **Broker Apache Kafka**: Servidor de mensajería para eventos de alta concurrencia. |
+| `zookeeper` | `2181` | **ZooKeeper**: Coordinación de metadatos del cluster de Kafka. |
 
 ---
 

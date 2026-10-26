@@ -69,6 +69,30 @@ resource "aws_security_group" "backend_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # Puerto expuesto por Kafka UI (8090)
+  ingress {
+    from_port   = 8090
+    to_port     = 8090
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Puerto expuesto por Kafka Service (8888)
+  ingress {
+    from_port   = 8888
+    to_port     = 8888
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Puerto expuesto por Kafka Broker (9092)
+  ingress {
+    from_port   = 9092
+    to_port     = 9092
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -107,6 +131,27 @@ resource "aws_security_group" "ec2_sg" {
   ingress {
     from_port   = 15673
     to_port     = 15673
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 8090
+    to_port     = 8090
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 8888
+    to_port     = 8888
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 9092
+    to_port     = 9092
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -181,10 +226,10 @@ resource "aws_eip" "frontend_eip" {
 
 # Instancia EC2 para el Backend (8 Microservicios + BFF Gateway)
 resource "aws_instance" "backend_server" {
-ami                    = data.aws_ami.ubuntu.id
-  instance_type          = var.backend_instance_type
-  key_name               = aws_key_pair.deploy_key.key_name
-  vpc_security_group_ids = [aws_security_group.backend_sg.id]
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = var.backend_instance_type
+  key_name                    = aws_key_pair.deploy_key.key_name
+  vpc_security_group_ids      = [aws_security_group.backend_sg.id]
   user_data_replace_on_change = true
 
   root_block_device {
@@ -245,10 +290,10 @@ resource "aws_eip_association" "backend_eip_assoc" {
 
 # Instancia EC2 separada para el Frontend (SPA Web Application)
 resource "aws_instance" "frontend_server" {
-ami                    = data.aws_ami.ubuntu.id
-  instance_type          = var.frontend_instance_type
-  key_name               = aws_key_pair.deploy_key.key_name
-  vpc_security_group_ids = [aws_security_group.frontend_sg.id]
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = var.frontend_instance_type
+  key_name                    = aws_key_pair.deploy_key.key_name
+  vpc_security_group_ids      = [aws_security_group.frontend_sg.id]
   user_data_replace_on_change = true
 
   root_block_device {

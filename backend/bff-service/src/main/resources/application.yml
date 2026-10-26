@@ -31,6 +31,8 @@ services:
     url: ${USUARIOS_SERVICE_URL:http://localhost:8086}
   clinicas:
     url: ${CLINICAS_SERVICE_URL:http://localhost:8087}
+  kafka:
+    url: ${KAFKA_SERVICE_URL:http://localhost:8888}
 
 management:
   endpoints:

@@ -25,6 +25,9 @@ sudo ufw allow 22/tcp
 sudo ufw allow 8080/tcp
 sudo ufw allow 15672/tcp
 sudo ufw allow 15673/tcp
+sudo ufw allow 8090/tcp
+sudo ufw allow 8888/tcp
+sudo ufw allow 9092/tcp
 echo "y" | sudo ufw enable || true
 
 # 4. Iniciar automáticamente los microservicios si existe docker-compose.yml

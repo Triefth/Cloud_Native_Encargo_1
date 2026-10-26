@@ -12,7 +12,8 @@ import {
   ShieldCheck, 
   Stethoscope,
   User,
-  Radio
+  Radio,
+  Cpu
 } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab, bffStatus, activeToken, authReady, onLogin, onLogout }) {
@@ -39,6 +40,7 @@ export default function Navbar({ activeTab, setActiveTab, bffStatus, activeToken
     { id: 'usuarios', label: 'Pacientes & Médicos', icon: Users },
     { id: 'notificaciones', label: 'Notificaciones', icon: Bell },
     { id: 'rabbitmq', label: 'RabbitMQ Logging', icon: Radio },
+    { id: 'kafka', label: 'Kafka Streams', icon: Cpu },
     { id: 'clinicas', label: 'Clínicas Rurales', icon: Building2 },
     { id: 'reportes', label: 'Reportes Operativos', icon: BarChart3 },
     { id: 'health', label: 'Resiliencia & Salud', icon: Activity },
