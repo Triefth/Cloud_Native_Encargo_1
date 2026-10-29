@@ -1,10 +1,11 @@
 # ==============================================================================
-# Terraform Ignore Rules
+# TERRAFORM
 # ==============================================================================
 .terraform/
 **/.terraform/
 *.tfstate
 *.tfstate.*
+*.tfstate.backup
 *.tfvars
 *.tfvars.json
 crash.log
@@ -18,21 +19,52 @@ terraform.rc
 .terraform.lock.hcl.bak
 
 # ==============================================================================
-# Frontend (Node / React / Vite)
+# CLAVES SSH Y CERTIFICADOS (NUNCA deben ir al repo)
+# ==============================================================================
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+
+# ==============================================================================
+# VARIABLES DE ENTORNO Y SECRETOS
+# ==============================================================================
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+.env.development
+# Permitidos: .env.example y .env.sample son plantillas sin secretos reales
+!.env.example
+!.env.sample
+
+# ==============================================================================
+# FRONTEND (Node / React / Vite)
 # ==============================================================================
 node_modules/
 **/node_modules/
 dist/
 **/dist/
-.env
-.env.local
-.env.*.local
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.local
 
 # ==============================================================================
-# Backend (Java / Maven / Spring Boot)
+# BACKEND (Java / Maven / Spring Boot)
 # ==============================================================================
 target/
 **/target/
@@ -40,17 +72,74 @@ target/
 *.jar
 *.war
 *.ear
-*.log
+*.nar
+.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/MavenWrapperDownloader.java
+# Archivos de configuración local (con contraseñas de BD, tokens, etc.)
+application-local.yml
+application-local.yaml
+application-prod.yml
+application-prod.yaml
+application-staging.yml
+**/application-local.*
+**/application-prod.*
 
 # ==============================================================================
-# System & IDE
+# DOCKER
 # ==============================================================================
-.DS_Store
-Thumbs.db
+.dockerignore-local
+
+# ==============================================================================
+# IDEs Y EDITORES
+# ==============================================================================
+# IntelliJ IDEA
 .idea/
+*.iml
+*.iws
+*.ipr
+out/
+# Eclipse
+.project
+.classpath
+.settings/
+.factorypath
+bin/
+# VS Code (permitido si el equipo lo usa, comentar si no)
 .vscode/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
+*.code-workspace
+# NetBeans
+nbproject/local.properties
+# STS / Spring Tool Suite
+.springBeans
+
+# ==============================================================================
+# SISTEMA OPERATIVO
+# ==============================================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+# Linux
+*~
+
+# ==============================================================================
+# LOGS Y TEMPORALES
+# ==============================================================================
+*.log
+logs/
+*.tmp
+*.temp
+*.bak
 *.swp
+*.swo

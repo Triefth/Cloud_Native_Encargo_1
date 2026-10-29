@@ -134,3 +134,4 @@ class DeadLetterConsumerTest {
                 "TransaccionSegura debe implementar Serializable");
     }
 }
+

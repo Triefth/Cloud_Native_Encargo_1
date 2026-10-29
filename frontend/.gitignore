@@ -1,0 +1,22 @@
+# Heredado del .gitignore raíz — este archivo agrega reglas específicas del frontend
+
+# Dependencias
+node_modules/
+
+# Build de producción (generado automáticamente, no debe estar en el repo)
+dist/
+
+# Variables de entorno con secretos reales
+.env
+.env.local
+.env.production
+.env.staging
+.env.*.local
+# Las plantillas sin secretos SÍ van al repo:
+!.env.example
+!.env.sample
+
+# Cache de Vite y herramientas de build
+.cache/
+.vite/
+

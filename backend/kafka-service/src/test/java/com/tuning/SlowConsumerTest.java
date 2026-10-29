@@ -164,3 +164,4 @@ class SlowConsumerTest {
         assertEquals(1700000000000L, record.getTimestamp());
     }
 }
+

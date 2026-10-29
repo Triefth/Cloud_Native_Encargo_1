@@ -122,3 +122,4 @@ class KafkaConsumerTest {
         assertEquals("orden-555", rec1.getKey(), "La key debe persistir en el record");
     }
 }
+
