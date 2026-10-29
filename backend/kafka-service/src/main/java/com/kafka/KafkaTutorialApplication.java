@@ -11,7 +11,7 @@ import org.springframework.context.annotation.ComponentScan;
  * 2. Kafka Streams Pipeline: Filtrado y Detección de Fraude en Tiempo Real
  */
 @SpringBootApplication
-@ComponentScan(basePackages = {"com.kafka", "com.banco"})
+@ComponentScan(basePackages = {"com.kafka", "com.banco", "com.tuning", "com.resilience"})
 public class KafkaTutorialApplication {
 
     public static void main(String[] args) {

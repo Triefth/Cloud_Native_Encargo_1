@@ -24,8 +24,9 @@ export const apiRequest = async (endpoint, options = {}) => {
     ...options.headers,
   };
 
+  const timeoutMs = options.timeout || 8000;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 3000);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   const config = {
     ...options,
@@ -206,4 +207,47 @@ export const bancoApi = {
   getTransacciones: () => apiRequest('/banco/transacciones'),
   health: () => apiRequest('/banco/health'),
 };
+
+// Tuning, Pruebas de Carga & Consumer Lag (PDF 2 y PDF 3)
+export const tuningApi = {
+  startLoadTest: (count = 10000) =>
+    apiRequest(`/tuning/load?count=${count}`, {
+      method: 'POST',
+      timeout: 30000,
+    }),
+  getMetrics: () => apiRequest('/tuning/metrics'),
+  setConsumerDelay: (delayMs) =>
+    apiRequest(`/tuning/consumer/delay?delayMs=${delayMs}`, { method: 'POST' }),
+  togglePause: (pause) =>
+    apiRequest(`/tuning/consumer/pause${pause !== undefined ? `?pause=${pause}` : ''}`, { method: 'POST' }),
+  reset: () => apiRequest('/tuning/reset', { method: 'POST' }),
+};
+
+// Manejo de Errores, DLT, Idempotencia y Observabilidad (PDF 1)
+export const resilienceApi = {
+  sendTransaction: (tx) =>
+    apiRequest('/resilience/send', {
+      method: 'POST',
+      body: JSON.stringify(tx),
+    }),
+  simulateValidationError: (type = 'monto_negativo') =>
+    apiRequest(`/resilience/simulate-validation-error?type=${type}`, { method: 'POST' }),
+  simulatePoisonPill: () =>
+    apiRequest('/resilience/simulate-poison-pill', { method: 'POST' }),
+  simulateDuplicate: (customId) =>
+    apiRequest(`/resilience/simulate-duplicate${customId ? `?customId=${encodeURIComponent(customId)}` : ''}`, { method: 'POST' }),
+  simulateTransientError: () =>
+    apiRequest('/resilience/simulate-transient-error', { method: 'POST' }),
+  simulatePermanentError: () =>
+    apiRequest('/resilience/simulate-permanent-error', { method: 'POST' }),
+  getDltRecords: () => apiRequest('/resilience/dlt'),
+  reprocessDlt: (id) =>
+    apiRequest(`/resilience/dlt/reprocess/${id}`, { method: 'POST' }),
+  clearDlt: () => apiRequest('/resilience/dlt', { method: 'DELETE' }),
+  getAuditLogs: () => apiRequest('/resilience/audit-logs'),
+  getProcessedTransactions: () => apiRequest('/resilience/processed'),
+  getProcessedKeys: () => apiRequest('/resilience/processed-keys'),
+  reset: () => apiRequest('/resilience/reset', { method: 'POST' }),
+};
+
 

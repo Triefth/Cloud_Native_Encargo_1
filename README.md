@@ -4,6 +4,10 @@ Este repositorio contiene la solución full-stack desacoplada para el **Caso de 
 
 La plataforma está diseñada bajo principios de **arquitectura Cloud Native**, **microservicios desacoplados**, **tolerancia a fallos con resiliencia activa**, **autenticación basada en JWT con Microsoft Entra ID (Azure AD)** e **infraestructura como código (IaC) en AWS mediante Terraform**.
 
+Este repositorio contiene la solución full-stack desacoplada para el **Caso de Estudio 2: Plataforma de Telemedicina para Clínicas Rurales** de la asignatura **Desarrollo Cloud Native I (DSY1107)**.
+
+La plataforma está diseñada bajo principios de **arquitectura Cloud Native**, **microservicios desacoplados**, **tolerancia a fallos con resiliencia activa**, **autenticación basada en JWT con Microsoft Entra ID (Azure AD)** e **infraestructura como código (IaC) en AWS mediante Terraform**.
+
 ---
 
 ##  Arquitectura General del Sistema
@@ -155,3 +159,144 @@ terraform apply -var="azure_tenant_id=YOUR_TENANT_ID" -var="azure_issuer=YOUR_IS
 * **Usuarios:** `GET /api/bff/usuarios/pacientes`, `GET /api/bff/usuarios/medicos`, `GET /api/bff/usuarios/medicos/especialidad/{especialidad}`
 * **Clínicas Rurales:** `GET /api/bff/clinicas`, `PUT /api/bff/clinicas/{id}/configuracion-ehr`
 * **Reportes:** `GET /api/bff/reportes/resumen`, `GET /api/bff/reportes/modulo/{modulo}`
+
+
+---
+
+## 🟠 Event Streaming con Apache Kafka (`kafka-service` - Puerto 8888)
+
+El `kafka-service` implementa **4 guías completas de Kafka** de la asignatura, cubriendo desde particionamiento hasta resiliencia avanzada con Dead Letter Topics.
+
+### Guía 1 – Pipeline Kafka Streams (Detección de Fraude en Tiempo Real)
+
+**Endpoint:** `POST /api/banco/transaccion`
+
+| Topic | Descripción |
+|-------|-------------|
+| `banco-transacciones` | Entrada: eventos crudos de transacciones (3 particiones) |
+| `banco-alertas` | Salida: alertas de fraude si `monto > $10,000` |
+
+**Topología Kafka Streams:**
+```
+banco-transacciones  →  [filter: monto > 10000]  →  [mapValues: enrich alerta]  →  banco-alertas
+```
+
+Ejemplo cURL:
+```bash
+# Transacción normal (sin alerta)
+curl -X POST http://localhost:8080/api/banco/transaccion \
+  -H "Content-Type: application/json" \
+  -d '{"usuario": "juan", "monto": 500, "origen": "app"}'
+
+# Transacción fraudulenta (dispara alerta en banco-alertas)
+curl -X POST http://localhost:8080/api/banco/transaccion \
+  -H "Content-Type: application/json" \
+  -d '{"usuario": "juan", "monto": 15000, "origen": "cajero"}'
+```
+
+---
+
+### Guía 2 – Particiones, Productor y Consumidor (Round Robin vs Sticky Partitioning)
+
+**Endpoint:** `GET /api/kafka/send?message=<msg>[&key=<key>]`
+
+| Comportamiento | Comando |
+|---|---|
+| **Round Robin** (sin key) | `GET /api/kafka/send?message=Mensaje1` |
+| **Sticky Partitioning** (con key) | `GET /api/kafka/send?message=Paso1-Creada&key=orden-555` |
+
+**Topic:** `tutorial-particiones` (3 particiones, replicación 1)
+
+Con la misma `key`, Kafka calcula `hash(key) % 3` → todos los pasos de `orden-555` van **siempre a la misma partición**, garantizando **orden secuencial**.
+
+---
+
+### Guía 3 – Tuning, Pruebas de Carga & Consumer Lag (PDF 2 y PDF 3)
+
+**Endpoint:** `POST /api/tuning/load?count=10000`
+
+#### Configuración de Tuning del Productor (`KafkaTuningConfig`)
+
+| Parámetro | Valor | Descripción |
+|---|---|---|
+| `batch.size` | 32 KB | Doble del default (16 KB) — menos llamadas I/O de red |
+| `linger.ms` | 20 ms | Pausa para llenar buffers antes de enviar |
+| `compression.type` | `snappy` | Balance óptimo CPU / compresión |
+| `enable.idempotence` | `true` | Garantía exactly-once en el broker |
+| `acks` | `all` | Confirmación en todas las réplicas |
+
+#### Retención del Broker (docker-compose)
+
+| Parámetro | Valor |
+|---|---|
+| `KAFKA_LOG_RETENTION_MINUTES` | 5 minutos |
+| `KAFKA_LOG_RETENTION_BYTES` | 50 MB |
+| `KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS` | 60 segundos |
+
+#### Fórmula Consumer Lag
+
+```
+Consumer Lag = LogEndOffset (total producidos) − CurrentOffset (total consumidos)
+```
+
+El `SlowConsumer` simula procesamiento pesado con retardo configurable (10 ms default = máx 100 msg/s).
+
+---
+
+### Guía 4 – Manejo de Errores, Resiliencia & Dead Letter Topic (PDF 1)
+
+#### 5 Patrones de Resiliencia Implementados
+
+| # | Patrón | Implementación |
+|---|---|---|
+| 1 | **Poison Pill** | `ErrorHandlingDeserializer` intercepta bytes corruptos sin bloquear la partición |
+| 2 | **Validación de Payload** | JSR-380 (`@Min`, `@NotBlank`, `@Email`) en `TransaccionSegura` |
+| 3 | **Exponential Backoff** | `DefaultErrorHandler` con espera 1s → 2s → 4s (máx 6s) antes del DLT |
+| 4 | **Dead Letter Topic** | `DeadLetterPublishingRecoverer` → `banco-resiliente.DLT` con Header Enrichment |
+| 5 | **Idempotencia Check-then-Act** | `processedMessages` en `ConcurrentHashMap` evita doble cobro por duplicados |
+
+#### Endpoints de Simulación
+
+```bash
+POST /api/resilience/send                            # Transacción normal con Correlation ID
+POST /api/resilience/simulate-poison-pill            # Bytes corruptos
+POST /api/resilience/simulate-validation-error       # Monto negativo (falla @Min)
+POST /api/resilience/simulate-duplicate?customId=X   # Duplicado (deduplicación)
+POST /api/resilience/simulate-transient-error        # Backoff → recupera en intento 3
+POST /api/resilience/simulate-permanent-error        # → banco-resiliente.DLT
+GET  /api/resilience/dlt                             # Ver Sala de Emergencias
+POST /api/resilience/dlt/reprocess/{id}              # Reprocesar mensaje del DLT
+GET  /api/resilience/audit-logs                      # Auditoría MDC (Correlation IDs)
+```
+
+#### Topics Kafka
+
+| Topic | Particiones | Guía |
+|---|---|---|
+| `tutorial-particiones` | 3 | Guía 2 |
+| `banco-transacciones` | 3 | Guía 1 |
+| `banco-alertas` | 3 | Guía 1 |
+| `sensor-topic` | 3 | Guía 3 |
+| `banco-resiliente` | 3 | Guía 4 |
+| `banco-resiliente.DLT` | 3 | Guía 4 |
+
+---
+
+## 🧪 Tests Unitarios (`kafka-service`)
+
+```bash
+cd backend/kafka-service
+# Con Maven instalado:
+mvn test
+# O dentro del contenedor Docker:
+docker run --rm -v ./:/app -w /app maven:3.9-eclipse-temurin-17 mvn test
+```
+
+| Clase de Test | Tests | Cubre |
+|---|---|---|
+| `ResilientConsumerTest` | 10 | Idempotencia, modelos Lombok, limpieza de estado |
+| `DeadLetterConsumerTest` | 9 | DLT vacío, operaciones CRUD, Serializable |
+| `SlowConsumerTest` | 11 | Consumer Lag, pausa, retardo configurable, reset |
+| `KafkaConsumerTest` | 7 | Particiones, Sticky Partitioning, Round Robin, limpieza |
+
+---

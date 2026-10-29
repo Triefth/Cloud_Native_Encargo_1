@@ -51,6 +51,36 @@ public class KafkaBffController {
         return forward(kafkaServiceUrl + uri + queryString, request, body);
     }
 
+    // Enrutamiento para Guías 2 & 3: Tuning, Pruebas de Carga & Consumer Lag (/api/tuning/** y /api/test/**)
+    @RequestMapping(value = {"/api/tuning/**", "/api/test/**"}, method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.DELETE})
+    public ResponseEntity<?> proxyTuningRoot(HttpServletRequest request, @RequestBody(required = false) Object body) {
+        String uri = request.getRequestURI();
+        String queryString = request.getQueryString() != null ? "?" + request.getQueryString() : "";
+        return forward(kafkaServiceUrl + uri + queryString, request, body);
+    }
+
+    @RequestMapping(value = {"/api/bff/tuning/**", "/api/bff/test/**"}, method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.DELETE})
+    public ResponseEntity<?> proxyBffTuning(HttpServletRequest request, @RequestBody(required = false) Object body) {
+        String uri = request.getRequestURI().replaceFirst("/api/bff/(tuning|test)", "/api/$1");
+        String queryString = request.getQueryString() != null ? "?" + request.getQueryString() : "";
+        return forward(kafkaServiceUrl + uri + queryString, request, body);
+    }
+
+    // Enrutamiento para Guía 1 (PDF 1): Manejo de Errores, DLT, Idempotencia (/api/resilience/**)
+    @RequestMapping(value = "/api/resilience/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.DELETE})
+    public ResponseEntity<?> proxyResilienceRoot(HttpServletRequest request, @RequestBody(required = false) Object body) {
+        String uri = request.getRequestURI();
+        String queryString = request.getQueryString() != null ? "?" + request.getQueryString() : "";
+        return forward(kafkaServiceUrl + uri + queryString, request, body);
+    }
+
+    @RequestMapping(value = "/api/bff/resilience/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.DELETE})
+    public ResponseEntity<?> proxyBffResilience(HttpServletRequest request, @RequestBody(required = false) Object body) {
+        String uri = request.getRequestURI().replaceFirst("/api/bff/resilience", "/api/resilience");
+        String queryString = request.getQueryString() != null ? "?" + request.getQueryString() : "";
+        return forward(kafkaServiceUrl + uri + queryString, request, body);
+    }
+
     private ResponseEntity<?> forward(String targetUrl, HttpServletRequest request, Object body) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
