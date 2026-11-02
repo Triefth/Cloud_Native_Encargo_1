@@ -53,3 +53,4 @@ public class AlertaClinicaDTO implements Serializable {
     @JsonProperty("timestamp")
     private String timestamp;
 }
+

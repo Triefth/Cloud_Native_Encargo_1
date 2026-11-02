@@ -62,3 +62,4 @@ public class CitaEventoDTO implements Serializable {
     @JsonProperty("timestamp")
     private String timestamp;
 }
+

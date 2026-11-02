@@ -99,3 +99,4 @@ class AlertaKafkaConsumerTest {
         assertTrue(guardada.getMensaje().contains("Recordatorio Anti No-Show"));
     }
 }
+
