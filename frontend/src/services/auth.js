@@ -64,6 +64,10 @@ export async function initializeAuth() {
 export async function login() {
   const instance = getMsalInstance();
   if (!instance) {
+    if (typeof window !== 'undefined' && window.location.protocol === 'http:' && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+      window.location.href = window.location.href.replace('http:', 'https:');
+      return null;
+    }
     throw new Error('MSAL requiere conexion HTTPS o localhost para autenticar con Azure AD en el navegador.');
   }
   if (!clientId || clientId === '00000000-0000-0000-0000-000000000000') {

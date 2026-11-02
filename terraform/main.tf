@@ -266,9 +266,9 @@ resource "aws_instance" "backend_server" {
               # 4. Configurar variables de entorno para el backend
               cd /home/ubuntu/app/backend
               cat << 'ENVFILE' > .env
-              AZURE_ISSUER=${var.azure_issuer}
-              AZURE_AUDIENCE=${var.backend_api_identifier_uri}
-              FRONTEND_ORIGIN=http://${aws_eip.frontend_eip.public_ip}
+              AZURE_ISSUER=${local.azure_issuer}
+              AZURE_AUDIENCE=${local.azure_audience}
+              FRONTEND_ORIGIN=https://${aws_eip.frontend_eip.public_ip}
               ENVFILE
 
               chown -R ubuntu:ubuntu /home/ubuntu/app
@@ -338,11 +338,11 @@ resource "aws_instance" "frontend_server" {
               sed -i 's/BACKEND_HOST/${aws_eip.backend_eip.public_ip}/g' nginx.conf
 
               cat << 'ENVFILE' > .env
-              VITE_AZURE_CLIENT_ID=${azuread_application.frontend.client_id}
-              VITE_AZURE_TENANT_ID=${var.azure_tenant_id}
-              VITE_AZURE_AUTHORITY=${var.azure_issuer}
-              VITE_AZURE_API_SCOPE=${var.backend_api_identifier_uri}/read
-              VITE_AZURE_REDIRECT_URI=http://${aws_eip.frontend_eip.public_ip}/
+              VITE_AZURE_CLIENT_ID=${local.azure_client_id}
+              VITE_AZURE_TENANT_ID=${local.azure_tenant_id}
+              VITE_AZURE_AUTHORITY=${local.azure_authority}
+              VITE_AZURE_API_SCOPE=${local.azure_audience}/read
+              VITE_AZURE_REDIRECT_URI=https://${aws_eip.frontend_eip.public_ip}/
               BACKEND_HOST=${aws_eip.backend_eip.public_ip}
               VITE_BACKEND_HOST=${aws_eip.backend_eip.public_ip}
               ENVFILE

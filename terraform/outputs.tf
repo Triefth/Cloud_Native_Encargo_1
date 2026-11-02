@@ -9,8 +9,18 @@ output "frontend_public_ip" {
 }
 
 output "frontend_url" {
-  description = "URL de acceso al portal web de Frontend"
+  description = "URL HTTP de acceso al portal web de Frontend"
   value       = "http://${aws_eip.frontend_eip.public_ip}"
+}
+
+output "frontend_https_url" {
+  description = "URL HTTPS segura requerida para autenticacion con Microsoft Entra ID"
+  value       = "https://${aws_eip.frontend_eip.public_ip}"
+}
+
+output "azure_redirect_uri" {
+  description = "URI EXACTA a registrar en Azure Portal (App Registrations -> Authentication -> Single-page application)"
+  value       = "https://${aws_eip.frontend_eip.public_ip}/"
 }
 
 output "ec2_public_ip" {
@@ -25,23 +35,23 @@ output "ec2_ssh_private_key" {
 }
 
 output "api_gateway_invoke_url" {
-  description = "URL base del API Gateway (para configurar en Angular)"
+  description = "URL base del API Gateway de AWS"
   value       = aws_apigatewayv2_stage.api_stage.invoke_url
 }
 
-output "azure_backend_client_id" {
-  description = "Client ID de la API backend registrada en Microsoft Entra"
-  value       = azuread_application.backend.client_id
+output "azure_frontend_client_id" {
+  description = "Client ID de la SPA configurada en Microsoft Entra"
+  value       = local.azure_client_id
 }
 
-output "azure_frontend_client_id" {
-  description = "Client ID de la SPA registrada en Microsoft Entra"
-  value       = azuread_application.frontend.client_id
+output "azure_audience" {
+  description = "Audience de la API backend en Microsoft Entra"
+  value       = local.azure_audience
 }
 
 output "azure_backend_scope_read" {
   description = "Scope read completo para MSAL"
-  value       = "${var.backend_api_identifier_uri}/read"
+  value       = "${local.azure_audience}/read"
 }
 
 output "kafka_ui_url" {

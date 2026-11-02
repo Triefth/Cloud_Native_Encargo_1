@@ -250,3 +250,56 @@ curl -X POST http://<BACKEND_PUBLIC_IP>:8080/api/banco/transaccion \
 *Consola: Filtrada silenciosamente por la regla `tx.getMonto() > 10`.*
 
 
+
+
+---
+
+## 7. Integración Multinube: Autenticación con Microsoft Entra ID (Azure AD) en AWS
+
+Para que el inicio de sesión con Azure funcione en las instancias de AWS exactamente igual que en desarrollo local:
+
+### 7.1 Configurar tus credenciales de Azure en Terraform
+
+Crea o edita `terraform/terraform.tfvars` (puedes basarte en `terraform/terraform.tfvars.example`):
+
+```hcl
+# Copia los valores que usas en tu frontend/.env local:
+azure_client_id            = "be1f94f2-51ba-4a74-ab8d-b258e2123e6e" # Client ID del Frontend
+azure_tenant_id            = "551dc2ab-db79-43ed-97de-ec90a21f3e0c" # Tenant ID (o "common")
+azure_issuer               = "https://login.microsoftonline.com/551dc2ab-db79-43ed-97de-ec90a21f3e0c/v2.0"
+backend_api_identifier_uri = "api://telemedicina-rural-api"
+git_branch                 = "test"
+```
+
+*Nota: Al aprovisionar las EC2, el script `user_data` inyectará automáticamente estos valores dentro de `/home/ubuntu/app/frontend/.env` y `/home/ubuntu/app/backend/.env`.*
+
+### 7.2 Desplegar con Terraform
+
+```bash
+cd terraform
+terraform init
+terraform apply -auto-approve
+```
+
+Al finalizar, Terraform entregará el output:
+```text
+azure_redirect_uri = "https://184.192.68.199/"
+frontend_https_url = "https://184.192.68.199"
+```
+
+### 7.3 Registrar la Redirect URI en Azure Portal (Paso Crítico)
+
+1. Ingresa a [portal.azure.com](https://portal.azure.com).
+2. Ve a **Microsoft Entra ID** ➔ **Registros de aplicaciones** (App registrations).
+3. Selecciona tu aplicación Frontend SPA (ej. `telemedicina-frontend-spa`).
+4. En el menú lateral, haz clic en **Autenticación** (Authentication).
+5. En la sección **Single-page application (SPA)**:
+   - Haz clic en **Agregar URI** (Add URI).
+   - Pega la URI entregada por Terraform: `https://<FRONTEND_PUBLIC_IP>/` (debe comenzar con `https://`).
+6. Haz clic en **Guardar** (Save).
+
+### 7.4 Probar el Login en AWS
+
+1. Abre tu navegador e ingresa a `https://<FRONTEND_PUBLIC_IP>` (acepta la advertencia de certificado autofirmado en el primer ingreso).
+2. Haz clic en **O Iniciar Sesión con Microsoft Entra ID (SSO)**.
+3. Se abrirá la ventana emergente oficial de Microsoft para autenticarte y retornar el token JWT a la aplicación.

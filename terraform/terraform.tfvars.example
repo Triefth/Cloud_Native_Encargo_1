@@ -1,0 +1,21 @@
+# ==============================================================================
+# ARCHIVO DE EJEMPLO DE VARIABLES TERRAFORM PARA DESPLIEGUE EN AWS + AZURE
+# ==============================================================================
+# Copia este archivo con el nombre "terraform.tfvars" en esta misma carpeta:
+# cp terraform.tfvars.example terraform.tfvars
+# ==============================================================================
+
+# 1. Región de AWS y Rama de Git
+aws_region = "us-east-1"
+git_branch = "test"
+
+# 2. Configuración de Azure Entra ID / CIAM (de tu .env local o portal.azure.com)
+azure_client_id            = "071271ca-f2e6-4328-90d3-1da0cd9edb3d"
+azure_tenant_id            = "3ad481d8-3136-47be-99b9-98077738d480"
+azure_authority            = "https://kaiserox.ciamlogin.com/3ad481d8-3136-47be-99b9-98077738d480/v2.0"
+azure_issuer               = "https://3ad481d8-3136-47be-99b9-98077738d480.ciamlogin.com/3ad481d8-3136-47be-99b9-98077738d480/v2.0"
+backend_api_identifier_uri = "api://telemedicina-rural-api"
+
+# 3. ¿Quieres que Terraform cree las apps en Azure automáticamente?
+# Déjalo en false si ya las registraste manualmente en portal.azure.com
+manage_azuread_in_terraform = false

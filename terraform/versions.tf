@@ -10,24 +10,12 @@ terraform {
       source  = "hashicorp/tls"
       version = "~> 4.0"
     }
-    azuread = {
-      source  = "hashicorp/azuread"
-      version = "~> 3.0"
-    }
   }
 
-  # Si usas S3 para backend de estado en CI/CD, descomenta la siguiente linea
-  # Los valores reales (bucket, key, region, dynamodb_table) se pasan desde
-  # GitHub Actions con `-backend-config=...` en el paso `terraform init`,
-  # porque el nombre del bucket depende del Account ID de AWS y no puede
-  # quedar hardcodeado aquí.
+  # Si usas S3 para backend de estado en CI/CD, descomenta la siguiente linea:
   # backend "s3" {}
 }
 
 provider "aws" {
   region = var.aws_region
-}
-
-provider "azuread" {
-  tenant_id = var.azure_tenant_id
 }

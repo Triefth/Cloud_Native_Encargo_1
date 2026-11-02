@@ -15,5 +15,6 @@ services:
     restart: always
     ports:
       - "80:80"
+      - "443:443"
     environment:
       - BACKEND_HOST=${BACKEND_HOST:-backend-ip}

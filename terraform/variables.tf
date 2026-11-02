@@ -12,7 +12,7 @@ variable "git_repo_url" {
 variable "git_branch" {
   description = "Rama de Git a desplegar"
   type        = string
-  default     = "develop"
+  default     = "test"
 }
 
 variable "backend_instance_type" {
@@ -30,26 +30,65 @@ variable "instance_type" {
   default     = "t2.medium"
 }
 
-variable "azure_tenant_id" {
-  description = "Tenant ID de Microsoft Entra. La creacion del tenant queda fuera de Terraform."
+variable "manage_azuread_in_terraform" {
+  description = "Si es true, Terraform intentará crear las aplicaciones en Microsoft Entra ID con el provider azuread. Si es false (por defecto), usa tus credenciales existentes de Azure Portal."
+  type        = bool
+  default     = false
+}
+
+# Credenciales de Microsoft Entra ID (CIAM / External ID)
+variable "azure_client_id" {
+  description = "Application (Client) ID del Frontend SPA registrado en Microsoft Entra ID"
   type        = string
+  default     = "071271ca-f2e6-4328-90d3-1da0cd9edb3d"
+}
+
+variable "entra_client_id" {
+  description = "Alias para azure_client_id"
+  type        = string
+  default     = ""
+}
+
+variable "azure_tenant_id" {
+  description = "Directory (Tenant) ID de Microsoft Entra ID"
+  type        = string
+  default     = "3ad481d8-3136-47be-99b9-98077738d480"
+}
+
+variable "entra_tenant_id" {
+  description = "Alias para azure_tenant_id"
+  type        = string
+  default     = ""
+}
+
+variable "azure_authority" {
+  description = "Autoridad OIDC de Entra CIAM para el Frontend (login authority)"
+  type        = string
+  default     = "https://kaiserox.ciamlogin.com/3ad481d8-3136-47be-99b9-98077738d480/v2.0"
 }
 
 variable "azure_issuer" {
-  description = "Issuer OIDC exacto usado por el User Flow de Entra External ID"
+  description = "Issuer OIDC exacto emitido en los tokens JWT para validación backend"
   type        = string
-}
-
-variable "frontend_redirect_uri" {
-  description = "URI SPA registrada en Microsoft Entra (debe terminar en / si no tiene path)"
-  type        = string
-  default     = "http://localhost:5173/"
+  default     = "https://3ad481d8-3136-47be-99b9-98077738d480.ciamlogin.com/3ad481d8-3136-47be-99b9-98077738d480/v2.0"
 }
 
 variable "backend_api_identifier_uri" {
-  description = "Application ID URI de la API protegida"
+  description = "Application ID URI de la API protegida Backend (Audience)"
   type        = string
-  default     = "api://telemedicina-rural-api-123456789"
+  default     = "api://telemedicina-rural-api"
+}
+
+variable "entra_audience" {
+  description = "Alias para backend_api_identifier_uri"
+  type        = string
+  default     = ""
+}
+
+variable "frontend_redirect_uri" {
+  description = "URI SPA registrada en Microsoft Entra (por defecto usa la Elastic IP de la EC2)"
+  type        = string
+  default     = ""
 }
 
 variable "backend_read_scope_id" {
