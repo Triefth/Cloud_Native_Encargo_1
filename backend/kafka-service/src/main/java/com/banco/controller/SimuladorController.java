@@ -4,6 +4,7 @@ import com.banco.consumer.BancoAlertasConsumer;
 import com.banco.model.AlertaFraude;
 import com.banco.model.Transaccion;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +17,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class SimuladorController {
 
     @Autowired
+    @Qualifier("jsonKafkaTemplate")
     private KafkaTemplate<String, Object> kafkaTemplate;
 
     @Autowired

@@ -2,6 +2,7 @@ package com.kafka.controller;
 
 import com.kafka.consumer.KafkaConsumer;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,7 +26,7 @@ public class KafkaController {
     private KafkaConsumer kafkaConsumer;
 
     @Autowired
-    public KafkaController(KafkaTemplate<String, String> kafkaTemplate) {
+    public KafkaController(@Qualifier("stringKafkaTemplate") KafkaTemplate<String, String> kafkaTemplate) {
         this.kafkaTemplate = kafkaTemplate;
     }
 

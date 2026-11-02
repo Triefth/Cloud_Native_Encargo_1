@@ -69,7 +69,8 @@ public class ResilienceKafkaConfig {
 
     // --- RECOVERER PARA DEAD LETTER TOPIC (DLT) CON HEADER ENRICHMENT ---
     @Bean
-    public DeadLetterPublishingRecoverer deadLetterPublishingRecoverer(KafkaTemplate<String, Object> resilientKafkaTemplate) {
+    public DeadLetterPublishingRecoverer deadLetterPublishingRecoverer(
+            @Qualifier("resilientKafkaTemplate") KafkaTemplate<String, Object> resilientKafkaTemplate) {
         // Por defecto, envía al mismo topic con sufijo .DLT (ej: banco-resiliente -> banco-resiliente.DLT)
         // Spring automáticamente enriquece los headers con el stacktrace y causa del fallo (Header Enrichment)
         return new DeadLetterPublishingRecoverer(resilientKafkaTemplate,
