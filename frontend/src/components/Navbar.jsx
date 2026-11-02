@@ -41,6 +41,7 @@ export default function Navbar({ activeTab, setActiveTab, bffStatus, activeToken
     { id: 'notificaciones', label: 'Notificaciones', icon: Bell },
     { id: 'rabbitmq', label: 'RabbitMQ Logging', icon: Radio },
     { id: 'kafka', label: 'Kafka Streams', icon: Cpu },
+    { id: 'kafkaTelemedicina', label: 'Kafka Telemedicina', icon: Stethoscope },
     { id: 'clinicas', label: 'Clínicas Rurales', icon: Building2 },
     { id: 'reportes', label: 'Reportes Operativos', icon: BarChart3 },
     { id: 'health', label: 'Resiliencia & Salud', icon: Activity },

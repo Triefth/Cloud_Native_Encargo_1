@@ -6,6 +6,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -77,7 +78,8 @@ public class ResilienceKafkaConfig {
 
     // --- GESTOR DE ERRORES CON EXPONENTIAL BACKOFF (PDF 1 - Páginas 7 y 8) ---
     @Bean
-    public DefaultErrorHandler resilientErrorHandler(DeadLetterPublishingRecoverer recoverer) {
+    public DefaultErrorHandler resilientErrorHandler(
+            @Qualifier("deadLetterPublishingRecoverer") DeadLetterPublishingRecoverer recoverer) {
         // Backoff Exponencial: inicia en 1000ms (1s), multiplicador 2.0 (1s, 2s, 4s...)
         // Máximo 3 intentos de reintento antes de enviar al DLT
         ExponentialBackOff backOff = new ExponentialBackOff(1000L, 2.0);
@@ -120,7 +122,7 @@ public class ResilienceKafkaConfig {
     // --- CONTAINER FACTORY CON VALIDACIÓN JSR-380 Y GESTOR DE ERRORES ---
     @Bean(name = "resilientKafkaListenerContainerFactory")
     public ConcurrentKafkaListenerContainerFactory<String, Object> resilientKafkaListenerContainerFactory(
-            DefaultErrorHandler resilientErrorHandler,
+            @Qualifier("resilientErrorHandler") DefaultErrorHandler resilientErrorHandler,
             LocalValidatorFactoryBean validator) {
 
         ConcurrentKafkaListenerContainerFactory<String, Object> factory =

@@ -282,6 +282,35 @@ GET  /api/resilience/audit-logs                      # Auditoría MDC (Correlati
 
 ---
 
+## 🏥 Kafka en el dominio de Telemedicina (EP3)
+
+Además de las guías tutoriales, `kafka-service` integra **Kafka al dominio de negocio** de telemedicina con dos casos de uso (uno por tópico):
+
+| Tópico | Caso de uso | Productor | Consumidor (consumer group) |
+|---|---|---|---|
+| `telemedicina.citas.eventos` | Streaming del ciclo de vida de citas | `citas-service` → `CitaEventoDTO` | `CitasEventConsumer` (`telemedicina-citas-group`) |
+| `telemedicina.alertas` | Alertas clínicas en tiempo real | `AlertaProducer` → `AlertaClinicaDTO` | `AlertasConsumer` (`telemedicina-alertas-group`) |
+
+**Flujo:** `citas-service` publica eventos de citas (creada/confirmada/cancelada/reprogramada). El consumidor valida el payload, audita y detecta **cancelaciones** (alerta ALTA) o **reprogramaciones** (alerta MEDIA), publicándolas en `telemedicina.alertas`.
+
+**Características evaluadas en EP3:**
+- Cliente Kafka completo (bootstrap servers, serializers JSON, consumer groups, idempotencia).
+- DTOs tipados con validación JSR-380 y contrato JSON portable.
+- `@KafkaListener` en ambos tópicos con `ErrorHandlingDeserializer`.
+- Manejo de errores: backoff exponencial + **Dead Letter Topic** (`<topic>.DLT`).
+- Microservicio administrador: `POST/GET/DELETE /api/telemedicina/admin/topics`, `GET /api/telemedicina/admin/consumer-groups`.
+- Parámetros de tópicos: 3 particiones, factor de replicación 1, retención 7 días, cleanup policy `delete`.
+
+**Endpoints (vía BFF `:8080/api/bff/telemedicina/**`):**
+- `POST /eventos/simular` — simular un evento de cita (productor).
+- `GET /eventos` y `GET /alertas` — eventos/alertas consumidos en vivo.
+- `GET/POST/DELETE /admin/topics` — administrar tópicos.
+- `GET /admin/consumer-groups` — listar consumer groups.
+
+Documento de evidencias: [`EVIDENCIAS_EP3.md`](EVIDENCIAS_EP3.md).
+
+---
+
 ## 🧪 Tests Unitarios (`kafka-service`)
 
 ```bash

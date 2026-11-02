@@ -35,9 +35,11 @@ services:
       - SPRING_RABBITMQ_ADDRESSES=rabbitmq-1:5672,rabbitmq-2:5672
       - SPRING_RABBITMQ_USERNAME=admin
       - SPRING_RABBITMQ_PASSWORD=admin123
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
     depends_on:
       - rabbitmq-1
       - rabbitmq-2
+      - kafka
 
   consultas-service:
     build: ./consultas-service

@@ -249,4 +249,65 @@ curl -X POST http://<BACKEND_PUBLIC_IP>:8080/api/banco/transaccion \
 ```
 *Consola: Filtrada silenciosamente por la regla `tx.getMonto() > 10`.*
 
+---
+
+## 7. Verificación de Kafka en el dominio de Telemedicina (Evidencia EP3)
+
+### 7.1 Acceso a Kafka UI y tópicos de telemedicina
+
+Abre `http://<BACKEND_PUBLIC_IP>:8090` y verifica los tópicos:
+
+- `telemedicina.citas.eventos` (3 particiones)
+- `telemedicina.citas.eventos.DLT`
+- `telemedicina.alertas` (3 particiones)
+- `telemedicina.alertas.DLT`
+
+### 7.2 Prueba end-to-end: cita cancelada → alerta clínica
+
+**Paso 1 — Publicar un evento de cita cancelada (productor):**
+```bash
+curl -X POST http://<BACKEND_PUBLIC_IP>:8080/api/bff/telemedicina/eventos/simular \
+  -H "Content-Type: application/json" \
+  -d '{"eventType":"CITA_CANCELADA","citaId":1001,"rutPaciente":"12.345.678-9","nombrePaciente":"María González","estado":"CANCELADA"}'
+```
+
+**Paso 2 — Ver eventos consumidos:**
+```bash
+curl http://<BACKEND_PUBLIC_IP>:8080/api/bff/telemedicina/eventos
+```
+
+**Paso 3 — Ver alertas generadas:**
+```bash
+curl http://<BACKEND_PUBLIC_IP>:8080/api/bff/telemedicina/alertas
+```
+*Resultado esperado:* una alerta `tipo=CITA_CANCELADA`, `severidad=ALTA` en `telemedicina.alertas`.
+
+**Consola de `kafka-service` (`docker logs kafka-service`):**
+```
+[KAFKA CONSUMIDOR CITAS] Evento recibido eventType='CITA_CANCELADA' citaId='1001' partition=...
+[KAFKA PRODUCTOR ALERTAS] Publicando alerta tipo='CITA_CANCELADA' severidad='ALTA' ...
+[✓] Alerta publicada exitosamente: alertaId='...'
+[KAFKA CONSUMIDOR ALERTAS] Alerta recibida tipo='CITA_CANCELADA' ...
+```
+
+### 7.3 Administración de tópicos y consumer groups
+
+```bash
+# Listar tópicos
+curl http://<BACKEND_PUBLIC_IP>:8080/api/bff/telemedicina/admin/topics
+
+# Crear un tópico con particiones/réplicas/retención/cleanup policy
+curl -X POST http://<BACKEND_PUBLIC_IP>:8080/api/bff/telemedicina/admin/topics \
+  -H "Content-Type: application/json" \
+  -d '{"name":"telemedicina.demo","partitions":3,"replicas":1,"retentionMs":"604800000","cleanupPolicy":"delete"}'
+
+# Eliminar un tópico
+curl -X DELETE http://<BACKEND_PUBLIC_IP>:8080/api/bff/telemedicina/admin/topics/telemedicina.demo
+
+# Listar consumer groups
+curl http://<BACKEND_PUBLIC_IP>:8080/api/bff/telemedicina/admin/consumer-groups
+```
+
+*Resultado esperado:* aparecen `telemedicina-citas-group` y `telemedicina-alertas-group` tras consumir el primer evento.
+
 

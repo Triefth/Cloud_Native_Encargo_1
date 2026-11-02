@@ -27,11 +27,19 @@ spring:
       simple:
         acknowledge-mode: manual
         missing-queues-fatal: false
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
 # =====================================================================
 # Centralización de Nombres de Colas y Exchanges (Pauta Duoc UC EP2 12%)
 # =====================================================================
 app:
+  kafka:
+    topic:
+      citas-eventos: ${APP_KAFKA_TOPIC_CITAS_EVENTOS:telemedicina.citas.eventos}
   rabbitmq:
     queues:
       citas: ${APP_QUEUE_CITAS:citas.queue}

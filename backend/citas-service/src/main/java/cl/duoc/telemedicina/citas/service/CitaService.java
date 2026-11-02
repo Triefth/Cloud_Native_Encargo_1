@@ -1,5 +1,6 @@
 package cl.duoc.telemedicina.citas.service;
 
+import cl.duoc.telemedicina.citas.dto.CitaEventoDTO;
 import cl.duoc.telemedicina.citas.entity.Cita;
 import cl.duoc.telemedicina.citas.entity.Cita.EstadoCita;
 import cl.duoc.telemedicina.citas.repository.CitaRepository;
@@ -27,12 +28,22 @@ public class CitaService {
     @Autowired
     private CitaEventProducer citaEventProducer;
 
+    @Autowired
+    private CitaEventoKafkaProducer citaEventoKafkaProducer;
+
     public CitaService() {
     }
 
     public CitaService(CitaRepository citaRepository, CitaEventProducer citaEventProducer) {
         this.citaRepository = citaRepository;
         this.citaEventProducer = citaEventProducer;
+    }
+
+    public CitaService(CitaRepository citaRepository, CitaEventProducer citaEventProducer,
+                       CitaEventoKafkaProducer citaEventoKafkaProducer) {
+        this.citaRepository = citaRepository;
+        this.citaEventProducer = citaEventProducer;
+        this.citaEventoKafkaProducer = citaEventoKafkaProducer;
     }
 
     public List<Cita> obtenerTodas() {
@@ -53,8 +64,9 @@ public class CitaService {
 
     public Cita crearCita(Cita cita) {
         Cita guardada = citaRepository.save(cita);
-        log.info("Cita ID {} creada con éxito. Disparando evento asíncrono RabbitMQ...", guardada.getId());
+        log.info("Cita ID {} creada con éxito. Disparando eventos asíncronos RabbitMQ y Kafka...", guardada.getId());
         citaEventProducer.notificarCitaCreada(guardada);
+        citaEventoKafkaProducer.publicarEvento(guardada, CitaEventoDTO.EVENTO_CREADA, guardada.getEstado().name());
         return guardada;
     }
 
@@ -64,6 +76,7 @@ public class CitaService {
         cita.setEstado(EstadoCita.CONFIRMADA);
         Cita guardada = citaRepository.save(cita);
         citaEventProducer.notificarCambioEstado(guardada, "CONFIRMADA");
+        citaEventoKafkaProducer.publicarEvento(guardada, CitaEventoDTO.EVENTO_CONFIRMADA, "CONFIRMADA");
         return guardada;
     }
 
@@ -73,6 +86,7 @@ public class CitaService {
         cita.setEstado(EstadoCita.CANCELADA);
         Cita guardada = citaRepository.save(cita);
         citaEventProducer.notificarCambioEstado(guardada, "CANCELADA");
+        citaEventoKafkaProducer.publicarEvento(guardada, CitaEventoDTO.EVENTO_CANCELADA, "CANCELADA");
         return guardada;
     }
 
@@ -83,6 +97,7 @@ public class CitaService {
         cita.setEstado(EstadoCita.REPROGRAMADA);
         Cita guardada = citaRepository.save(cita);
         citaEventProducer.notificarCambioEstado(guardada, "REPROGRAMADA");
+        citaEventoKafkaProducer.publicarEvento(guardada, CitaEventoDTO.EVENTO_REPROGRAMADA, "REPROGRAMADA");
         return guardada;
     }
 }

@@ -51,6 +51,21 @@ public class KafkaBffController {
         return forward(kafkaServiceUrl + uri + queryString, request, body);
     }
 
+    // Enrutamiento para EP3: Dominio Telemedicina con Kafka (/api/telemedicina/**)
+    @RequestMapping(value = "/api/telemedicina/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+    public ResponseEntity<?> proxyTelemedicinaRoot(HttpServletRequest request, @RequestBody(required = false) Object body) {
+        String uri = request.getRequestURI();
+        String queryString = request.getQueryString() != null ? "?" + request.getQueryString() : "";
+        return forward(kafkaServiceUrl + uri + queryString, request, body);
+    }
+
+    @RequestMapping(value = "/api/bff/telemedicina/**", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE})
+    public ResponseEntity<?> proxyBffTelemedicina(HttpServletRequest request, @RequestBody(required = false) Object body) {
+        String uri = request.getRequestURI().replaceFirst("/api/bff/telemedicina", "/api/telemedicina");
+        String queryString = request.getQueryString() != null ? "?" + request.getQueryString() : "";
+        return forward(kafkaServiceUrl + uri + queryString, request, body);
+    }
+
     // Enrutamiento para Guías 2 & 3: Tuning, Pruebas de Carga & Consumer Lag (/api/tuning/** y /api/test/**)
     @RequestMapping(value = {"/api/tuning/**", "/api/test/**"}, method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.DELETE})
     public ResponseEntity<?> proxyTuningRoot(HttpServletRequest request, @RequestBody(required = false) Object body) {

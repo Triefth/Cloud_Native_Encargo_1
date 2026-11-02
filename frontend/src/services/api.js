@@ -223,6 +223,33 @@ export const tuningApi = {
   reset: () => apiRequest('/tuning/reset', { method: 'POST' }),
 };
 
+// Kafka Telemedicina (EP3): Citas -> Alertas clínicas + Admin de tópicos/consumer groups
+export const telemedicinaKafkaApi = {
+  health: () => apiRequest('/telemedicina/health'),
+  simularEvento: (evento) =>
+    apiRequest('/telemedicina/eventos/simular', {
+      method: 'POST',
+      body: JSON.stringify(evento),
+    }),
+  getEventos: () => apiRequest('/telemedicina/eventos'),
+  getAlertas: () => apiRequest('/telemedicina/alertas'),
+  clearEventos: () => apiRequest('/telemedicina/eventos', { method: 'DELETE' }),
+  clearAlertas: () => apiRequest('/telemedicina/alertas', { method: 'DELETE' }),
+  // Admin
+  listTopics: () => apiRequest('/telemedicina/admin/topics'),
+  describeTopic: (name) => apiRequest(`/telemedicina/admin/topics/${name}`),
+  createTopic: (topic) =>
+    apiRequest('/telemedicina/admin/topics', {
+      method: 'POST',
+      body: JSON.stringify(topic),
+    }),
+  deleteTopic: (name) =>
+    apiRequest(`/telemedicina/admin/topics/${name}`, { method: 'DELETE' }),
+  listConsumerGroups: () => apiRequest('/telemedicina/admin/consumer-groups'),
+  describeConsumerGroup: (groupId) =>
+    apiRequest(`/telemedicina/admin/consumer-groups/${groupId}`),
+};
+
 // Manejo de Errores, DLT, Idempotencia y Observabilidad (PDF 1)
 export const resilienceApi = {
   sendTransaction: (tx) =>

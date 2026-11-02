@@ -26,6 +26,12 @@ spring:
         default.value.serde: org.springframework.kafka.support.serializer.JsonSerde
         spring.json.trusted.packages: "*"
 
+app:
+  kafka:
+    topics:
+      citas-eventos: ${APP_KAFKA_TOPIC_CITAS_EVENTOS:telemedicina.citas.eventos}
+      alertas: ${APP_KAFKA_TOPIC_ALERTAS:telemedicina.alertas}
+
 kafka:
   bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}}
   consumer:
