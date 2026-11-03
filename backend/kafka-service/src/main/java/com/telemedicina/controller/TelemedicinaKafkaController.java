@@ -2,9 +2,11 @@ package com.telemedicina.controller;
 
 import com.telemedicina.dto.AlertaClinicaDTO;
 import com.telemedicina.dto.CitaEventoDTO;
+import com.telemedicina.dto.NotificacionEventoDTO;
 import com.telemedicina.service.AlertasConsumer;
 import com.telemedicina.service.CitasEventConsumer;
 import com.telemedicina.service.CitasEventProducer;
+import com.telemedicina.service.NotificacionesConsumer;
 import com.telemedicina.service.TelemedicinaAdminService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -20,7 +22,7 @@ import java.util.UUID;
  *
  * Expone:
  *  - Simulación de eventos de citas (productor).
- *  - Consulta de eventos y alertas consumidos en vivo (consumidores).
+ *  - Consulta de eventos, alertas y notificaciones consumidos en vivo (consumidores).
  *  - Administración de tópicos y consumer groups (microservicio administrador).
  */
 @RestController
@@ -31,16 +33,19 @@ public class TelemedicinaKafkaController {
     private final CitasEventProducer citasEventProducer;
     private final CitasEventConsumer citasEventConsumer;
     private final AlertasConsumer alertasConsumer;
+    private final NotificacionesConsumer notificacionesConsumer;
     private final TelemedicinaAdminService adminService;
 
     @Autowired
     public TelemedicinaKafkaController(CitasEventProducer citasEventProducer,
                                        CitasEventConsumer citasEventConsumer,
                                        AlertasConsumer alertasConsumer,
+                                       NotificacionesConsumer notificacionesConsumer,
                                        TelemedicinaAdminService adminService) {
         this.citasEventProducer = citasEventProducer;
         this.citasEventConsumer = citasEventConsumer;
         this.alertasConsumer = alertasConsumer;
+        this.notificacionesConsumer = notificacionesConsumer;
         this.adminService = adminService;
     }
 
@@ -51,7 +56,8 @@ public class TelemedicinaKafkaController {
         m.put("service", "telemedicina-kafka");
         m.put("casosDeUso", List.of(
                 "Streaming del ciclo de vida de citas (telemedicina.citas.eventos)",
-                "Alertas clinicas en tiempo real (telemedicina.alertas)"));
+                "Alertas clinicas en tiempo real (telemedicina.alertas)",
+                "Notificaciones y recordatorios en tiempo real (telemedicina.notificaciones)"));
         return m;
     }
 
@@ -88,7 +94,7 @@ public class TelemedicinaKafkaController {
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // CONSULTA (eventos y alertas consumidos en vivo)
+    // CONSULTA (eventos, alertas y notificaciones consumidos en vivo)
     // ─────────────────────────────────────────────────────────────────────
     @GetMapping("/eventos")
     public List<CitaEventoDTO> getEventos() {
@@ -98,6 +104,11 @@ public class TelemedicinaKafkaController {
     @GetMapping("/alertas")
     public List<AlertaClinicaDTO> getAlertas() {
         return alertasConsumer.getReceivedAlertas();
+    }
+
+    @GetMapping("/notificaciones")
+    public List<NotificacionEventoDTO> getNotificaciones() {
+        return notificacionesConsumer.getReceivedNotificaciones();
     }
 
     @DeleteMapping("/eventos")
@@ -110,6 +121,12 @@ public class TelemedicinaKafkaController {
     public Map<String, Object> clearAlertas() {
         alertasConsumer.clearAlertas();
         return Map.of("cleared", true, "collection", "alertas");
+    }
+
+    @DeleteMapping("/notificaciones")
+    public Map<String, Object> clearNotificaciones() {
+        notificacionesConsumer.clearNotificaciones();
+        return Map.of("cleared", true, "collection", "notificaciones");
     }
 
     // ─────────────────────────────────────────────────────────────────────

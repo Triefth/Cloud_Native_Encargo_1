@@ -27,11 +27,14 @@ public class AlertaKafkaConsumer {
     private static final Logger log = LoggerFactory.getLogger(AlertaKafkaConsumer.class);
 
     private final NotificacionRepository notificacionRepository;
+    private final NotificacionKafkaProducer notificacionKafkaProducer;
     private final ObjectMapper objectMapper;
 
     @Autowired
-    public AlertaKafkaConsumer(NotificacionRepository notificacionRepository) {
+    public AlertaKafkaConsumer(NotificacionRepository notificacionRepository,
+                               @Autowired(required = false) NotificacionKafkaProducer notificacionKafkaProducer) {
         this.notificacionRepository = notificacionRepository;
+        this.notificacionKafkaProducer = notificacionKafkaProducer;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -72,8 +75,13 @@ public class AlertaKafkaConsumer {
                     .fechaEnvio(LocalDateTime.now())
                     .build();
 
-            notificacionRepository.save(notif);
-            log.info("✅ [KAFKA - NOTIFICACIONES] Notificación #{} registrada en BD para paciente {}", notif.getId(), notif.getRutPaciente());
+            Notificacion guardada = notificacionRepository.save(notif);
+            log.info("✅ [KAFKA - NOTIFICACIONES] Notificación #{} registrada en BD para paciente {}", guardada.getId(), guardada.getRutPaciente());
+
+            // Publicar evento en telemedicina.notificaciones
+            if (notificacionKafkaProducer != null) {
+                notificacionKafkaProducer.publicarNotificacion(guardada, "ALERTA_KAFKA");
+            }
 
         } catch (Exception e) {
             log.error("❌ [KAFKA - NOTIFICACIONES] Error al procesar alerta clínica de Kafka: {}", e.getMessage(), e);
@@ -82,7 +90,7 @@ public class AlertaKafkaConsumer {
 
     /**
      * Consume eventos del ciclo de vida de citas (Caso de Uso 1 EP3).
-     * Despacha recordatorio automático Anti No-Show al crearse una nueva cita.
+     * Despacha recordatorio automático Anti No-Show ante citas creadas.
      */
     @KafkaListener(
             topics = "${spring.kafka.topics.citas-eventos:telemedicina.citas.eventos}",
@@ -96,7 +104,7 @@ public class AlertaKafkaConsumer {
                 return;
             }
 
-            // Solo despachar recordatorio al crear una nueva cita
+            // Despachar recordatorio al crear una nueva cita
             if (CitaEventoDTO.EVENTO_CREADA.equalsIgnoreCase(evento.getEventType())) {
                 log.info("📅 [KAFKA - NOTIFICACIONES] Nueva cita #{} detectada para paciente {}. Programando recordatorio Anti No-Show.",
                         evento.getCitaId(), evento.getRutPaciente());
@@ -115,8 +123,13 @@ public class AlertaKafkaConsumer {
                         .fechaEnvio(LocalDateTime.now())
                         .build();
 
-                notificacionRepository.save(notif);
-                log.info("📲 [KAFKA - NOTIFICACIONES] Recordatorio Anti No-Show registrado #{} para cita #{}", notif.getId(), evento.getCitaId());
+                Notificacion guardada = notificacionRepository.save(notif);
+                log.info("📲 [KAFKA - NOTIFICACIONES] Recordatorio Anti No-Show registrado #{} para cita #{}", guardada.getId(), evento.getCitaId());
+
+                // Publicar evento en telemedicina.notificaciones
+                if (notificacionKafkaProducer != null) {
+                    notificacionKafkaProducer.publicarNotificacion(guardada, "RECORDATORIO_AUTO");
+                }
             }
 
         } catch (Exception e) {
@@ -140,4 +153,3 @@ public class AlertaKafkaConsumer {
         }
     }
 }
-

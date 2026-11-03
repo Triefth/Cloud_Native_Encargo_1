@@ -2,6 +2,7 @@ package com.telemedicina.config;
 
 import com.telemedicina.dto.AlertaClinicaDTO;
 import com.telemedicina.dto.CitaEventoDTO;
+import com.telemedicina.dto.NotificacionEventoDTO;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -57,8 +58,11 @@ public class TelemedicinaKafkaConfig {
     @Value("${app.kafka.topics.alertas:telemedicina.alertas}")
     private String topicAlertas;
 
+    @Value("${app.kafka.topics.notificaciones:telemedicina.notificaciones}")
+    private String topicNotificaciones;
+
     // ─────────────────────────────────────────────────────────────────────
-    // 1. PRODUCTOR JSON (idempotente, acks=all, retries) para CitaEventoDTO y AlertaClinicaDTO
+    // 1. PRODUCTOR JSON (idempotente, acks=all, retries)
     // ─────────────────────────────────────────────────────────────────────
     @Bean(name = "telemedicinaProducerFactory")
     public ProducerFactory<String, Object> telemedicinaProducerFactory() {
@@ -66,9 +70,7 @@ public class TelemedicinaKafkaConfig {
         config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-        // Evita inyectar cabeceras de tipo, para que el JSON sea portable entre servicios
         config.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);
-        // Idempotencia + entrega confiable
         config.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
         config.put(ProducerConfig.ACKS_CONFIG, "all");
         config.put(ProducerConfig.RETRIES_CONFIG, 3);
@@ -97,13 +99,12 @@ public class TelemedicinaKafkaConfig {
         ExponentialBackOff backOff = new ExponentialBackOff(1000L, 2.0);
         backOff.setMaxElapsedTime(6000L);
         DefaultErrorHandler handler = new DefaultErrorHandler(telemedicinaDeadLetterRecoverer, backOff);
-        // Payload inválido (validación de negocio) -> directo a DLT, sin reintentos inútiles
         handler.addNotRetryableExceptions(IllegalArgumentException.class);
         return handler;
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // 3. CONSUMIDOR CITAS (JsonDeserializer con ErrorHandlingDeserializer)
+    // 3. CONSUMIDOR CITAS
     // ─────────────────────────────────────────────────────────────────────
     @Bean
     public ConsumerFactory<String, CitaEventoDTO> telemedicinaCitasConsumerFactory() {
@@ -130,13 +131,13 @@ public class TelemedicinaKafkaConfig {
         ConcurrentKafkaListenerContainerFactory<String, CitaEventoDTO> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(telemedicinaCitasConsumerFactory());
-        factory.setConcurrency(3); // paralelismo = número de particiones
+        factory.setConcurrency(3);
         factory.setCommonErrorHandler(telemedicinaErrorHandler);
         return factory;
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // 4. CONSUMIDOR ALERTAS (JsonDeserializer con ErrorHandlingDeserializer)
+    // 4. CONSUMIDOR ALERTAS
     // ─────────────────────────────────────────────────────────────────────
     @Bean
     public ConsumerFactory<String, AlertaClinicaDTO> telemedicinaAlertasConsumerFactory() {
@@ -169,7 +170,40 @@ public class TelemedicinaKafkaConfig {
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // 5. ADMIN (KafkaAdmin + AdminClient) para microservicio administrador
+    // 5. CONSUMIDOR NOTIFICACIONES (telemedicina.notificaciones)
+    // ─────────────────────────────────────────────────────────────────────
+    @Bean
+    public ConsumerFactory<String, NotificacionEventoDTO> telemedicinaNotificacionesConsumerFactory() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, "telemedicina-notificaciones-group");
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+        props.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS, StringDeserializer.class);
+        props.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class);
+
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+        props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, NotificacionEventoDTO.class.getName());
+        props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
+
+        return new DefaultKafkaConsumerFactory<>(props);
+    }
+
+    @Bean(name = "telemedicinaNotificacionesKafkaListenerContainerFactory")
+    public ConcurrentKafkaListenerContainerFactory<String, NotificacionEventoDTO> telemedicinaNotificacionesKafkaListenerContainerFactory(
+            @Qualifier("telemedicinaErrorHandler") DefaultErrorHandler telemedicinaErrorHandler) {
+        ConcurrentKafkaListenerContainerFactory<String, NotificacionEventoDTO> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(telemedicinaNotificacionesConsumerFactory());
+        factory.setConcurrency(3);
+        factory.setCommonErrorHandler(telemedicinaErrorHandler);
+        return factory;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // 6. ADMIN (KafkaAdmin + AdminClient) para microservicio administrador
     // ─────────────────────────────────────────────────────────────────────
     @Bean
     public KafkaAdmin telemedicinaKafkaAdmin() {
@@ -186,7 +220,7 @@ public class TelemedicinaKafkaConfig {
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // 6. DECLARACIÓN DE TÓPICOS (particiones, réplicas, retención, cleanup policy)
+    // 7. DECLARACIÓN DE TÓPICOS
     // ─────────────────────────────────────────────────────────────────────
     @Bean
     public NewTopic citasEventosTopic() {
@@ -220,6 +254,25 @@ public class TelemedicinaKafkaConfig {
     @Bean
     public NewTopic alertasDltTopic() {
         return TopicBuilder.name(topicAlertas + ".DLT")
+                .partitions(3)
+                .replicas(1)
+                .config(TopicConfig.RETENTION_MS_CONFIG, "604800000")
+                .build();
+    }
+
+    @Bean
+    public NewTopic notificacionesTopic() {
+        return TopicBuilder.name(topicNotificaciones)
+                .partitions(3)
+                .replicas(1)
+                .config(TopicConfig.RETENTION_MS_CONFIG, "604800000")
+                .config(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE)
+                .build();
+    }
+
+    @Bean
+    public NewTopic notificacionesDltTopic() {
+        return TopicBuilder.name(topicNotificaciones + ".DLT")
                 .partitions(3)
                 .replicas(1)
                 .config(TopicConfig.RETENTION_MS_CONFIG, "604800000")

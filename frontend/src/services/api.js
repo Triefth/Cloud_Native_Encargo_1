@@ -235,6 +235,8 @@ export const telemedicinaKafkaApi = {
   getAlertas: () => apiRequest('/telemedicina/alertas'),
   clearEventos: () => apiRequest('/telemedicina/eventos', { method: 'DELETE' }),
   clearAlertas: () => apiRequest('/telemedicina/alertas', { method: 'DELETE' }),
+  getNotificaciones: () => apiRequest('/telemedicina/notificaciones'),
+  clearNotificaciones: () => apiRequest('/telemedicina/notificaciones', { method: 'DELETE' }),
   // Admin
   listTopics: () => apiRequest('/telemedicina/admin/topics'),
   describeTopic: (name) => apiRequest(`/telemedicina/admin/topics/${name}`),

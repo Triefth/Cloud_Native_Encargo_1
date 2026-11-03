@@ -13,7 +13,10 @@ import {
   Server,
   Terminal,
   CheckCircle2,
-  Stethoscope
+  Stethoscope,
+  PhoneCall,
+  MessageSquare,
+  Mail
 } from 'lucide-react';
 import { telemedicinaKafkaApi } from '../services/api';
 
@@ -29,6 +32,7 @@ export default function KafkaTelemedicinaManager() {
   const [clusterStatus, setClusterStatus] = useState('verificando');
   const [eventos, setEventos] = useState([]);
   const [alertas, setAlertas] = useState([]);
+  const [notificaciones, setNotificaciones] = useState([]);
   const [response, setResponse] = useState(null);
 
   // Formulario de simulación
@@ -49,12 +53,14 @@ export default function KafkaTelemedicinaManager() {
   };
 
   const loadData = async () => {
-    const [evRes, alRes] = await Promise.all([
+    const [evRes, alRes, notifRes] = await Promise.all([
       telemedicinaKafkaApi.getEventos(),
       telemedicinaKafkaApi.getAlertas(),
+      telemedicinaKafkaApi.getNotificaciones(),
     ]);
     if (!evRes.error && Array.isArray(evRes.data)) setEventos(evRes.data);
     if (!alRes.error && Array.isArray(alRes.data)) setAlertas(alRes.data);
+    if (!notifRes.error && Array.isArray(notifRes.data)) setNotificaciones(notifRes.data);
   };
 
   const loadAdmin = async () => {
@@ -114,6 +120,11 @@ export default function KafkaTelemedicinaManager() {
     setAlertas([]);
   };
 
+  const handleClearNotificaciones = async () => {
+    await telemedicinaKafkaApi.clearNotificaciones();
+    setNotificaciones([]);
+  };
+
   const handleCreateTopic = async () => {
     if (!newTopic.name) return;
     const res = await telemedicinaKafkaApi.createTopic(newTopic);
@@ -153,12 +164,12 @@ export default function KafkaTelemedicinaManager() {
               </span>
             </div>
             <h1 style={{ fontSize: '1.7rem', fontWeight: 800, margin: 0 }} className="text-gradient">
-              Streaming de Citas → Alertas Clínicas
+              Streaming de Citas → Alertas → Notificaciones
             </h1>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '6px', maxWidth: '880px' }}>
-              Dos casos de uso sobre Apache Kafka: <strong>ciclo de vida de citas</strong> (<code>telemedicina.citas.eventos</code>) y
-              <strong> alertas clínicas en tiempo real</strong> (<code>telemedicina.alertas</code>), con productores, consumidores,
-              consumer groups, DLT y administración de tópicos.
+              Flujo reactivo completo en Apache Kafka: <strong>ciclo de vida de citas</strong> (<code>telemedicina.citas.eventos</code>),
+              <strong> alertas clínicas</strong> (<code>telemedicina.alertas</code>) y
+              <strong> despacho de notificaciones</strong> (<code>telemedicina.notificaciones</code>), con productores y consumidores desacoplados.
             </p>
           </div>
           <button onClick={() => { checkHealth(); loadData(); }} className="btn btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
@@ -169,7 +180,7 @@ export default function KafkaTelemedicinaManager() {
         {/* Sub-tabs */}
         <div style={{ display: 'flex', gap: '10px', marginTop: '22px', borderTop: '1px solid var(--border-color)', paddingTop: '16px', flexWrap: 'wrap' }}>
           <button onClick={() => setActiveTab('flujo')} className={`btn ${activeTab === 'flujo' ? 'btn-primary' : 'btn-secondary'}`}>
-            <Activity size={16} /> Flujo Citas → Alertas
+            <Activity size={16} /> Flujo Reactivo Completo
           </button>
           <button onClick={() => setActiveTab('admin')} className={`btn ${activeTab === 'admin' ? 'btn-primary' : 'btn-secondary'}`}>
             <Server size={16} /> Administrar Tópicos & Consumer Groups
@@ -179,34 +190,28 @@ export default function KafkaTelemedicinaManager() {
 
       {activeTab === 'flujo' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {/* Arquitectura */}
+          {/* Arquitectura de 3 Casos de Uso */}
           <div className="glass-card">
             <h3 style={{ fontSize: '1.15rem', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Layers size={18} color="var(--accent-teal)" /> Arquitectura de los 2 casos de uso
+              <Layers size={18} color="var(--accent-teal)" /> Arquitectura de Streaming Desacoplado con Kafka
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', alignItems: 'center' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', alignItems: 'center' }}>
               <div style={{ textAlign: 'center', padding: '12px', background: 'rgba(59,130,246,0.1)', borderRadius: '8px', border: '1px solid rgba(59,130,246,0.3)' }}>
-                <div style={{ fontSize: '0.72rem', color: 'var(--accent-blue)', fontWeight: 700, textTransform: 'uppercase' }}>Productor</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--accent-blue)', fontWeight: 700, textTransform: 'uppercase' }}>1. Productor</div>
                 <div style={{ fontWeight: 700, marginTop: '4px' }}>citas-service</div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Publica CitaEventoDTO</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>telemedicina.citas.eventos</div>
               </div>
-              <ArrowRight size={20} color="var(--text-muted)" style={{ justifySelf: 'center' }} />
-              <div style={{ textAlign: 'center', padding: '12px', background: 'rgba(16,185,129,0.1)', borderRadius: '8px', border: '1px solid rgba(16,185,129,0.3)' }}>
-                <div style={{ fontSize: '0.72rem', color: 'var(--accent-emerald)', fontWeight: 700, textTransform: 'uppercase' }}>Tópico A</div>
-                <div style={{ fontWeight: 700, marginTop: '4px' }}>telemedicina.citas.eventos</div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '4px' }}>3 particiones · consumer group citas-group</div>
-              </div>
-              <ArrowRight size={20} color="var(--text-muted)" style={{ justifySelf: 'center' }} />
+              <ArrowRight size={18} color="var(--text-muted)" style={{ justifySelf: 'center' }} />
               <div style={{ textAlign: 'center', padding: '12px', background: 'rgba(245,158,11,0.1)', borderRadius: '8px', border: '1px solid rgba(245,158,11,0.3)' }}>
-                <div style={{ fontSize: '0.72rem', color: 'var(--accent-amber)', fontWeight: 700, textTransform: 'uppercase' }}>Consumidor/Productor</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--accent-amber)', fontWeight: 700, textTransform: 'uppercase' }}>2. Procesador / Alertas</div>
                 <div style={{ fontWeight: 700, marginTop: '4px' }}>kafka-service</div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Detecta cancelación/reprogramación → AlertaClinicaDTO</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>telemedicina.alertas</div>
               </div>
-              <ArrowRight size={20} color="var(--text-muted)" style={{ justifySelf: 'center' }} />
-              <div style={{ textAlign: 'center', padding: '12px', background: 'rgba(244,63,94,0.1)', borderRadius: '8px', border: '1px solid rgba(244,63,94,0.3)' }}>
-                <div style={{ fontSize: '0.72rem', color: 'var(--accent-rose)', fontWeight: 700, textTransform: 'uppercase' }}>Tópico B</div>
-                <div style={{ fontWeight: 700, marginTop: '4px' }}>telemedicina.alertas</div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '4px' }}>consumer group alertas-group</div>
+              <ArrowRight size={18} color="var(--text-muted)" style={{ justifySelf: 'center' }} />
+              <div style={{ textAlign: 'center', padding: '12px', background: 'rgba(16,185,129,0.1)', borderRadius: '8px', border: '1px solid rgba(16,185,129,0.3)' }}>
+                <div style={{ fontSize: '0.72rem', color: 'var(--accent-emerald)', fontWeight: 700, textTransform: 'uppercase' }}>3. Consumidor / Despacho</div>
+                <div style={{ fontWeight: 700, marginTop: '4px' }}>notificaciones-service</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>telemedicina.notificaciones</div>
               </div>
             </div>
           </div>
@@ -295,39 +300,95 @@ export default function KafkaTelemedicinaManager() {
             </div>
           </div>
 
+          {/* Notificaciones Despachadas por Kafka */}
+          <div className="glass-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <h3 style={{ fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <PhoneCall size={18} color="var(--accent-emerald)" /> Mensajes de Notificaciones en Kafka (Topic: telemedicina.notificaciones)
+              </h3>
+              {notificaciones.length > 0 && <button onClick={handleClearNotificaciones} className="btn btn-secondary btn-sm">Limpiar</button>}
+            </div>
+            {notificaciones.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '30px 20px', color: 'var(--text-secondary)' }}>
+                <CheckCircle2 size={34} color="var(--accent-emerald)" style={{ margin: '0 auto 12px auto', display: 'block' }} />
+                <p style={{ fontWeight: 600 }}>Sin notificaciones en el stream de Kafka</p>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Dispara un recordatorio en la pestaña "Notificaciones" o simula un evento de cita para ver el mensaje viajar por Kafka.
+                </p>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto', maxHeight: '330px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', textAlign: 'left' }}>
+                      <th style={{ padding: '8px' }}>ID</th>
+                      <th style={{ padding: '8px' }}>Cita #</th>
+                      <th style={{ padding: '8px' }}>RUT Paciente</th>
+                      <th style={{ padding: '8px' }}>Canal</th>
+                      <th style={{ padding: '8px' }}>Origen</th>
+                      <th style={{ padding: '8px' }}>Mensaje</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {notificaciones.map((n, i) => (
+                      <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                        <td style={{ padding: '8px', fontFamily: 'monospace' }}>#{n.notificacionId || (i + 1)}</td>
+                        <td style={{ padding: '8px' }}>#{n.citaId || '-'}</td>
+                        <td style={{ padding: '8px', fontWeight: 600 }}>{n.rutPaciente}</td>
+                        <td style={{ padding: '8px' }}>
+                          <span className="badge badge-info" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            {n.canal === 'SMS' ? <PhoneCall size={12} /> : n.canal === 'WHATSAPP' ? <MessageSquare size={12} /> : <Mail size={12} />}
+                            {n.canal}
+                          </span>
+                        </td>
+                        <td style={{ padding: '8px' }}>
+                          <span className="badge badge-secondary" style={{ fontSize: '0.75rem' }}>
+                            {n.tipoOrigen || 'KAFKA'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '8px', color: 'var(--text-secondary)', maxWidth: '320px' }}>{n.mensaje}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
           {/* Eventos recibidos */}
           <div className="glass-card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
               <h3 style={{ fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Calendar size={18} color="var(--accent-teal)" /> Eventos de citas consumidos (telemedicina.citas.eventos)
+                <Calendar size={18} color="var(--accent-blue)" /> Eventos de citas consumidos (telemedicina.citas.eventos)
               </h3>
               {eventos.length > 0 && <button onClick={handleClearEventos} className="btn btn-secondary btn-sm">Limpiar</button>}
             </div>
             {eventos.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '26px 20px', color: 'var(--text-secondary)' }}>
-                <Terminal size={30} color="var(--text-muted)" style={{ margin: '0 auto 10px auto', display: 'block' }} />
-                <p style={{ fontSize: '0.85rem' }}>El consumer group <code>telemedicina-citas-group</code> aún no ha recibido eventos.</p>
+              <div style={{ textAlign: 'center', padding: '30px 20px', color: 'var(--text-secondary)' }}>
+                <p style={{ color: 'var(--text-muted)' }}>Sin eventos recibidos. Publica un evento con el simulador o desde el módulo de Agenda de Citas.</p>
               </div>
             ) : (
-              <div style={{ overflowX: 'auto', maxHeight: '300px' }}>
+              <div style={{ overflowX: 'auto', maxHeight: '330px' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', textAlign: 'left' }}>
                       <th style={{ padding: '8px' }}>Tipo</th>
-                      <th style={{ padding: '8px' }}>Cita ID</th>
+                      <th style={{ padding: '8px' }}>Cita #</th>
                       <th style={{ padding: '8px' }}>Paciente</th>
-                      <th style={{ padding: '8px' }}>Estado</th>
+                      <th style={{ padding: '8px' }}>Médico</th>
+                      <th style={{ padding: '8px' }}>Clínica</th>
                       <th style={{ padding: '8px' }}>Timestamp</th>
                     </tr>
                   </thead>
                   <tbody>
                     {eventos.map((e, i) => (
                       <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                        <td style={{ padding: '8px', fontWeight: 600 }}>{e.eventType}</td>
-                        <td style={{ padding: '8px', fontFamily: 'monospace' }}>{e.citaId}</td>
-                        <td style={{ padding: '8px' }}>{e.nombrePaciente || e.rutPaciente}</td>
-                        <td style={{ padding: '8px' }}><span className="badge badge-info">{e.estado}</span></td>
-                        <td style={{ padding: '8px', color: 'var(--text-muted)', fontSize: '0.78rem' }}>{e.timestamp}</td>
+                        <td style={{ padding: '8px' }}><span className="badge badge-primary">{e.eventType}</span></td>
+                        <td style={{ padding: '8px', fontWeight: 600 }}>#{e.citaId}</td>
+                        <td style={{ padding: '8px' }}>{e.nombrePaciente} ({e.rutPaciente})</td>
+                        <td style={{ padding: '8px' }}>{e.nombreMedico}</td>
+                        <td style={{ padding: '8px', color: 'var(--text-secondary)' }}>{e.clinicaRural || 'N/A'}</td>
+                        <td style={{ padding: '8px', color: 'var(--text-muted)', fontSize: '0.8rem' }}>{e.timestamp ? new Date(e.timestamp).toLocaleTimeString() : '-'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -338,12 +399,13 @@ export default function KafkaTelemedicinaManager() {
         </div>
       )}
 
+      {/* Admin Tab */}
       {activeTab === 'admin' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
-          {/* Admin tópicos */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '24px' }}>
+          {/* Tópicos */}
           <div className="glass-card">
             <h3 style={{ fontSize: '1.15rem', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Server size={18} color="var(--accent-teal)" /> Administración de Tópicos
+              <Server size={18} color="var(--accent-teal)" /> Tópicos de Telemedicina
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '8px' }}>
@@ -405,7 +467,7 @@ export default function KafkaTelemedicinaManager() {
               </table>
             </div>
             <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '12px' }}>
-              <AlertTriangle size={13} style={{ verticalAlign: '-2px' }} /> Los groups <code>telemedicina-citas-group</code> y <code>telemedicina-alertas-group</code> aparecen tras consumir el primer evento.
+              <AlertTriangle size={13} style={{ verticalAlign: '-2px' }} /> Los groups <code>telemedicina-citas-group</code>, <code>telemedicina-alertas-group</code> y <code>telemedicina-notificaciones-group</code> aparecen tras consumir el primer evento.
             </p>
           </div>
         </div>
