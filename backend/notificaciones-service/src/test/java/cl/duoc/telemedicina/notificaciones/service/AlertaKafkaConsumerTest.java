@@ -15,17 +15,24 @@ import static org.mockito.Mockito.*;
 
 /**
  * Tests Unitarios para AlertaKafkaConsumer
- * Valida que los eventos de Kafka de telemedicina generen notificaciones en BD.
+ * Valida que los eventos de Kafka de telemedicina generen notificaciones en BD y se publiquen a Kafka.
  */
 class AlertaKafkaConsumerTest {
 
     private NotificacionRepository notificacionRepository;
+    private NotificacionKafkaProducer notificacionKafkaProducer;
     private AlertaKafkaConsumer consumer;
 
     @BeforeEach
     void setUp() {
         notificacionRepository = mock(NotificacionRepository.class);
-        consumer = new AlertaKafkaConsumer(notificacionRepository);
+        notificacionKafkaProducer = mock(NotificacionKafkaProducer.class);
+        when(notificacionRepository.save(any(Notificacion.class))).thenAnswer(invocation -> {
+            Notificacion n = invocation.getArgument(0);
+            n.setId(1L);
+            return n;
+        });
+        consumer = new AlertaKafkaConsumer(notificacionRepository, notificacionKafkaProducer);
     }
 
     @Test
@@ -47,6 +54,7 @@ class AlertaKafkaConsumerTest {
 
         ArgumentCaptor<Notificacion> captor = ArgumentCaptor.forClass(Notificacion.class);
         verify(notificacionRepository, times(1)).save(captor.capture());
+        verify(notificacionKafkaProducer, times(1)).publicarNotificacion(any(Notificacion.class), eq("ALERTA_KAFKA"));
 
         Notificacion guardada = captor.getValue();
         assertEquals("12.345.678-9", guardada.getRutPaciente());
@@ -70,6 +78,7 @@ class AlertaKafkaConsumerTest {
         consumer.recibirAlertaClinica(record);
 
         verify(notificacionRepository, never()).save(any());
+        verify(notificacionKafkaProducer, never()).publicarNotificacion(any(), any());
     }
 
     @Test
@@ -91,6 +100,7 @@ class AlertaKafkaConsumerTest {
 
         ArgumentCaptor<Notificacion> captor = ArgumentCaptor.forClass(Notificacion.class);
         verify(notificacionRepository, times(1)).save(captor.capture());
+        verify(notificacionKafkaProducer, times(1)).publicarNotificacion(any(Notificacion.class), eq("RECORDATORIO_AUTO"));
 
         Notificacion guardada = captor.getValue();
         assertEquals("98.765.432-1", guardada.getRutPaciente());
@@ -99,4 +109,3 @@ class AlertaKafkaConsumerTest {
         assertTrue(guardada.getMensaje().contains("Recordatorio Anti No-Show"));
     }
 }
-

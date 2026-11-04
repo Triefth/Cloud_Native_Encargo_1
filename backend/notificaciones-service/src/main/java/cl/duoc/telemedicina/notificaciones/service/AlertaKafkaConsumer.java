@@ -30,6 +30,10 @@ public class AlertaKafkaConsumer {
     private final NotificacionKafkaProducer notificacionKafkaProducer;
     private final ObjectMapper objectMapper;
 
+    public AlertaKafkaConsumer(NotificacionRepository notificacionRepository) {
+        this(notificacionRepository, null);
+    }
+
     @Autowired
     public AlertaKafkaConsumer(NotificacionRepository notificacionRepository,
                                @Autowired(required = false) NotificacionKafkaProducer notificacionKafkaProducer) {
@@ -123,14 +127,14 @@ public class AlertaKafkaConsumer {
                         .fechaEnvio(LocalDateTime.now())
                         .build();
 
-                Notificacion guardada = notificacionRepository.save(notif);
-                log.info("📲 [KAFKA - NOTIFICACIONES] Recordatorio Anti No-Show registrado #{} para cita #{}", guardada.getId(), evento.getCitaId());
+            Notificacion guardada = notificacionRepository.save(notif);
+            log.info("📲 [KAFKA - NOTIFICACIONES] Recordatorio Anti No-Show registrado #{} para cita #{}", guardada.getId(), evento.getCitaId());
 
-                // Publicar evento en telemedicina.notificaciones
-                if (notificacionKafkaProducer != null) {
-                    notificacionKafkaProducer.publicarNotificacion(guardada, "RECORDATORIO_AUTO");
-                }
+            // Publicar evento en telemedicina.notificaciones
+            if (notificacionKafkaProducer != null) {
+                notificacionKafkaProducer.publicarNotificacion(guardada, "RECORDATORIO_AUTO");
             }
+        }
 
         } catch (Exception e) {
             log.error("❌ [KAFKA - NOTIFICACIONES] Error al procesar evento de cita de Kafka: {}", e.getMessage(), e);
@@ -146,9 +150,10 @@ public class AlertaKafkaConsumer {
             if (rawValue instanceof String) {
                 return objectMapper.readValue((String) rawValue, targetClass);
             }
-            return objectMapper.convertValue(rawValue, targetClass);
+            byte[] bytes = objectMapper.writeValueAsBytes(rawValue);
+            return objectMapper.readValue(bytes, targetClass);
         } catch (Exception e) {
-            log.warn("Fallo al deserializar payload hacia {}: {}", targetClass.getSimpleName(), e.getMessage());
+            log.debug("No se pudo deserializar payload a {}: {}", targetClass.getSimpleName(), e.getMessage());
             return null;
         }
     }
