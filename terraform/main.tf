@@ -27,13 +27,13 @@ resource "tls_private_key" "deploy_key" {
 }
 
 resource "aws_key_pair" "deploy_key" {
-  key_name   = "telemedicina-ci-deploy-key-v2"
+  key_name   = "telemedicina-ci-deploy-key-v3"
   public_key = tls_private_key.deploy_key.public_key_openssh
 }
 
 # Security Group para la instancia Backend EC2
 resource "aws_security_group" "backend_sg" {
-  name        = "telemedicina_backend_ec2_sg_v2"
+  name        = "telemedicina_backend_ec2_sg_v3"
   description = "Permitir trafico SSH y BFF (8080) para Backend"
   vpc_id      = data.aws_vpc.default.id
 
@@ -103,7 +103,7 @@ resource "aws_security_group" "backend_sg" {
 
 # Alias para compatibilidad con referencias existentes
 resource "aws_security_group" "ec2_sg" {
-  name        = "telemedicina_ec2_sg_v2"
+  name        = "telemedicina_ec2_sg_v3"
   description = "Security Group legacy / compatibilidad"
   vpc_id      = data.aws_vpc.default.id
 
@@ -166,7 +166,7 @@ resource "aws_security_group" "ec2_sg" {
 
 # Security Group para la instancia Frontend EC2
 resource "aws_security_group" "frontend_sg" {
-  name        = "telemedicina_frontend_ec2_sg_v2"
+  name        = "telemedicina_frontend_ec2_sg_v3"
   description = "Permitir trafico SSH (22), HTTP (80), HTTPS (443) y Vite (5173) para Frontend"
   vpc_id      = data.aws_vpc.default.id
 

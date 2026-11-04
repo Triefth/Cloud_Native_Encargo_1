@@ -2,9 +2,10 @@ import { PublicClientApplication } from '@azure/msal-browser';
 
 const clientId = import.meta.env.VITE_AZURE_CLIENT_ID;
 const tenantId = import.meta.env.VITE_AZURE_TENANT_ID;
-const authority = import.meta.env.VITE_AZURE_AUTHORITY
-  || `https://login.microsoftonline.com/${tenantId || 'common'}`;
-const redirectUri = import.meta.env.VITE_AZURE_REDIRECT_URI || window.location.origin;
+const rawAuthority = import.meta.env.VITE_AZURE_AUTHORITY
+  || `https://login.microsoftonline.com/${'common'}`;
+const authority = rawAuthority.replace(/\/v2\.0\/?$/, '').replace(/\/$/, '');
+const redirectUri = import.meta.env.VITE_AZURE_REDIRECT_URI || (typeof window !== 'undefined' ? window.location.origin : '');
 const apiScope = import.meta.env.VITE_AZURE_API_SCOPE;
 
 let _msalInstance = null;
@@ -20,6 +21,7 @@ export function getMsalInstance() {
         auth: {
           clientId: clientId || '00000000-0000-0000-0000-000000000000',
           authority,
+          knownAuthorities: ['kaiserox.ciamlogin.com', 'login.microsoftonline.com'],
           redirectUri,
         },
         cache: {
@@ -37,7 +39,7 @@ export function getMsalInstance() {
 export const msalInstance = getMsalInstance();
 
 const loginRequest = {
-  scopes: apiScope ? [apiScope] : [],
+  scopes: apiScope ? [apiScope, 'openid', 'profile'] : ['openid', 'profile', 'email'],
 };
 
 export async function initializeAuth() {
@@ -54,7 +56,8 @@ export async function initializeAuth() {
     }
 
     instance.setActiveAccount(account);
-    return await getAccessToken(account);
+    const token = await getAccessToken(account);
+    return token || localStorage.getItem('bff_jwt_token');
   } catch (err) {
     console.warn('MSAL initialization warning:', err);
     return null;
@@ -75,14 +78,15 @@ export async function login() {
   }
   const result = await instance.loginPopup(loginRequest);
   instance.setActiveAccount(result.account);
-  return getAccessToken(result.account);
+  const token = await getAccessToken(result.account);
+  return token || result.idToken || result.accessToken;
 }
 
 export function logout() {
   const instance = getMsalInstance();
   const account = getAccount();
   if (instance && account) {
-    return instance.logoutPopup().catch(() => {});
+    return instance.logoutPopup().catch(() => { });
   }
   return Promise.resolve();
 }

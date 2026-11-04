@@ -1669,7 +1669,7 @@ export default function KafkaStreamsManager() {
             </h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6 }}>
               En la nube, la infraestructura provisionada con <strong>Terraform</strong> expone los puertos de mensajería y monitoreo
-              a través del Security Group <code>telemedicina_backend_ec2_sg_v2</code> y el Firewall UFW:
+              a través del Security Group <code>telemedicina_backend_ec2_sg_v3</code> y el Firewall UFW:
             </p>
 
             <div style={{
