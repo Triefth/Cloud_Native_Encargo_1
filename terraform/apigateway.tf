@@ -6,8 +6,9 @@ resource "aws_apigatewayv2_api" "telemedicina_api" {
     allow_headers = ["Authorization", "Content-Type", "X-Requested-With", "Accept"]
     allow_methods = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
     allow_origins = [
-      trimsuffix(var.frontend_redirect_uri, "/"),
-      "http://${aws_eip.frontend_eip.public_ip}"
+      "http://${aws_eip.frontend_eip.public_ip}",
+      "https://${aws_eip.frontend_eip.public_ip}",
+      "http://localhost:5173"
     ]
     max_age = 3600
   }
@@ -20,8 +21,8 @@ resource "aws_apigatewayv2_authorizer" "entra_jwt" {
   name             = "entra-id-jwt"
 
   jwt_configuration {
-    audience = [azuread_application.backend.client_id]
-    issuer   = var.azure_issuer
+    audience = [local.azure_audience]
+    issuer   = local.azure_issuer
   }
 }
 

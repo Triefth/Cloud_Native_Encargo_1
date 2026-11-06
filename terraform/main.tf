@@ -27,13 +27,13 @@ resource "tls_private_key" "deploy_key" {
 }
 
 resource "aws_key_pair" "deploy_key" {
-  key_name   = "telemedicina-ci-deploy-key-v2"
+  key_name   = "telemedicina-ci-deploy-key-v3"
   public_key = tls_private_key.deploy_key.public_key_openssh
 }
 
 # Security Group para la instancia Backend EC2
 resource "aws_security_group" "backend_sg" {
-  name        = "telemedicina_backend_ec2_sg_v2"
+  name        = "telemedicina_backend_ec2_sg_v3"
   description = "Permitir trafico SSH y BFF (8080) para Backend"
   vpc_id      = data.aws_vpc.default.id
 
@@ -103,7 +103,7 @@ resource "aws_security_group" "backend_sg" {
 
 # Alias para compatibilidad con referencias existentes
 resource "aws_security_group" "ec2_sg" {
-  name        = "telemedicina_ec2_sg_v2"
+  name        = "telemedicina_ec2_sg_v3"
   description = "Security Group legacy / compatibilidad"
   vpc_id      = data.aws_vpc.default.id
 
@@ -166,7 +166,7 @@ resource "aws_security_group" "ec2_sg" {
 
 # Security Group para la instancia Frontend EC2
 resource "aws_security_group" "frontend_sg" {
-  name        = "telemedicina_frontend_ec2_sg_v2"
+  name        = "telemedicina_frontend_ec2_sg_v3"
   description = "Permitir trafico SSH (22), HTTP (80), HTTPS (443) y Vite (5173) para Frontend"
   vpc_id      = data.aws_vpc.default.id
 
@@ -266,9 +266,9 @@ resource "aws_instance" "backend_server" {
               # 4. Configurar variables de entorno para el backend
               cd /home/ubuntu/app/backend
               cat << 'ENVFILE' > .env
-              AZURE_ISSUER=${var.azure_issuer}
-              AZURE_AUDIENCE=${var.backend_api_identifier_uri}
-              FRONTEND_ORIGIN=http://${aws_eip.frontend_eip.public_ip}
+              AZURE_ISSUER=${local.azure_issuer}
+              AZURE_AUDIENCE=${local.azure_audience}
+              FRONTEND_ORIGIN=https://${aws_eip.frontend_eip.public_ip}
               ENVFILE
 
               chown -R ubuntu:ubuntu /home/ubuntu/app
@@ -338,11 +338,11 @@ resource "aws_instance" "frontend_server" {
               sed -i 's/BACKEND_HOST/${aws_eip.backend_eip.public_ip}/g' nginx.conf
 
               cat << 'ENVFILE' > .env
-              VITE_AZURE_CLIENT_ID=${azuread_application.frontend.client_id}
-              VITE_AZURE_TENANT_ID=${var.azure_tenant_id}
-              VITE_AZURE_AUTHORITY=${var.azure_issuer}
-              VITE_AZURE_API_SCOPE=${var.backend_api_identifier_uri}/read
-              VITE_AZURE_REDIRECT_URI=http://${aws_eip.frontend_eip.public_ip}/
+              VITE_AZURE_CLIENT_ID=${local.azure_client_id}
+              VITE_AZURE_TENANT_ID=${local.azure_tenant_id}
+              VITE_AZURE_AUTHORITY=${local.azure_authority}
+              VITE_AZURE_API_SCOPE=${local.azure_audience}/read
+              VITE_AZURE_REDIRECT_URI=https://${aws_eip.frontend_eip.public_ip}/
               BACKEND_HOST=${aws_eip.backend_eip.public_ip}
               VITE_BACKEND_HOST=${aws_eip.backend_eip.public_ip}
               ENVFILE
