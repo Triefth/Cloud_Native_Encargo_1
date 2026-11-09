@@ -15,19 +15,6 @@ import lombok.NoArgsConstructor;
  * Caso de uso EP3 #2: "Alertas clínicas en tiempo real".
  * Producido por kafka-service (a partir de eventos de citas) y consumido
  * por kafka-service/notificaciones-service para su despacho.
- *
- * Ejemplo JSON:
- * {
- *   "alertaId": "a1b2...",
- *   "tipo": "CITA_CANCELADA",
- *   "severidad": "ALTA",
- *   "rutPaciente": "12.345.678-9",
- *   "nombrePaciente": "María González",
- *   "citaId": 42,
- *   "mensaje": "Cita cancelada, se requiere reagendar.",
- *   "sourceEventId": "9c7a...",
- *   "timestamp": "2026-11-02T17:00:01Z"
- * }
  * =====================================================================
  */
 @Data
@@ -68,6 +55,10 @@ public class AlertaClinicaDTO {
 
     @JsonProperty("citaId")
     private Long citaId;
+
+    /** Especialidad médica para clave de particionamiento Kafka. */
+    @JsonProperty("especialidad")
+    private String especialidad;
 
     @JsonProperty("mensaje")
     private String mensaje;

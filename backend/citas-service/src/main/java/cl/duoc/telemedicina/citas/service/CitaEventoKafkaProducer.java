@@ -14,22 +14,24 @@ import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
 /**
- * CitaEventoKafkaProducer — Productor Kafka de citas-service.
+ * CitaEventoKafkaProducer — Publicador de eventos del ciclo de vida de citas
+ * hacia Apache Kafka (tópico telemedicina.citas.eventos).
  *
- * Publica en el tópico {@code telemedicina.citas.eventos} el ciclo de vida de
- * las citas (creada, confirmada, cancelada, reprogramada), usando el RUT del
- * paciente como clave de partición para preservar el orden por paciente.
+ * Cumple con Pauta Duoc UC EP3:
+ *  - Clave de particionamiento basada en la especialidad médica (garantiza orden
+ *    estricto por especialidad y balanceo en las 3 particiones).
+ *  - Inyección de nombres de tópicos desde application.yml sin cadenas hardcoded.
+ *  - Formato JSON normalizado CitaEventoDTO con campos de auditoría (eventId, timestamp).
  */
 @Service
 public class CitaEventoKafkaProducer {
 
     private static final Logger log = LoggerFactory.getLogger(CitaEventoKafkaProducer.class);
-
     private static final DateTimeFormatter ISO = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
     private final KafkaTemplate<String, CitaEventoDTO> kafkaTemplate;
 
-    @Value("${app.kafka.topic.citas-eventos:telemedicina.citas.eventos}")
+    @Value("${app.kafka.topics.citas-eventos.name:${app.kafka.topic.citas-eventos:telemedicina.citas.eventos}}")
     private String topicCitasEventos;
 
     @Autowired
@@ -39,6 +41,7 @@ public class CitaEventoKafkaProducer {
 
     /**
      * Construye y publica un CitaEventoDTO a partir de la entidad Cita.
+     * Utiliza la especialidad médica como clave de particionamiento.
      */
     public void publicarEvento(Cita cita, String eventType, String estado) {
         CitaEventoDTO evento = CitaEventoDTO.builder()
@@ -57,9 +60,14 @@ public class CitaEventoKafkaProducer {
                 .timestamp(Instant.now().toString())
                 .build();
 
-        log.info("[KAFKA PRODUCTOR CITAS] Publicando evento tipo='{}' citaId='{}' -> topic='{}'",
-                eventType, cita.getId(), topicCitasEventos);
-        kafkaTemplate.send(topicCitasEventos, cita.getRutPaciente(), evento);
-        log.info("[✓] Evento Kafka publicado exitosamente: eventId='{}'", evento.getEventId());
+        // Clave de particionamiento: Especialidad del médico (en vez de RUT)
+        String partitionKey = (cita.getEspecialidad() != null && !cita.getEspecialidad().isBlank())
+                ? cita.getEspecialidad().trim()
+                : "MEDICINA_GENERAL";
+
+        log.info("[KAFKA PRODUCTOR CITAS] Publicando evento tipo='{}' citaId='{}' key(especialidad)='{}' -> topic='{}'",
+                eventType, cita.getId(), partitionKey, topicCitasEventos);
+        kafkaTemplate.send(topicCitasEventos, partitionKey, evento);
+        log.info("[✓] Evento Kafka publicado exitosamente: eventId='{}' key='{}'", evento.getEventId(), partitionKey);
     }
 }

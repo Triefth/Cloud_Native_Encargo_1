@@ -25,7 +25,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
  *  1. Validar el payload (eventId, eventType, citaId, rutPaciente...).
  *  2. Auditar los eventos recibidos (lista en memoria para el frontend).
  *  3. Detectar condiciones de negocio que generan una alerta clínica
- *     (cita cancelada o reprogramada) y publicarla en el tópico de alertas.
+ *     (cita cancelada o reprogramada) y publicarla en el tópico de alertas
+ *     usando la especialidad médica como clave.
  */
 @Service
 public class CitasEventConsumer {
@@ -41,7 +42,7 @@ public class CitasEventConsumer {
     }
 
     @KafkaListener(
-            topics = "${app.kafka.topics.citas-eventos:telemedicina.citas.eventos}",
+            topics = "${app.kafka.topics.citas-eventos.name:${app.kafka.topics.citas-eventos:telemedicina.citas.eventos}}",
             groupId = "telemedicina-citas-group",
             containerFactory = "telemedicinaCitasKafkaListenerContainerFactory"
     )
@@ -50,8 +51,8 @@ public class CitasEventConsumer {
             @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
             @Header(KafkaHeaders.OFFSET) long offset) {
 
-        log.info("[KAFKA CONSUMIDOR CITAS] Evento recibido eventType='{}' citaId='{}' partition={} offset={}",
-                evento.getEventType(), evento.getCitaId(), partition, offset);
+        log.info("[KAFKA CONSUMIDOR CITAS] Evento recibido eventType='{}' citaId='{}' especialidad='{}' partition={} offset={}",
+                evento.getEventType(), evento.getCitaId(), evento.getEspecialidad(), partition, offset);
 
         // Validación de payload de negocio (eventos inválidos -> DLT)
         validarPayload(evento);
@@ -79,6 +80,7 @@ public class CitasEventConsumer {
                     .rutPaciente(evento.getRutPaciente())
                     .nombrePaciente(evento.getNombrePaciente())
                     .citaId(evento.getCitaId())
+                    .especialidad(evento.getEspecialidad())
                     .mensaje("Cita cancelada para paciente " + evento.getRutPaciente() + " - se requiere reagendar.")
                     .sourceEventId(evento.getEventId())
                     .timestamp(Instant.now().toString())
@@ -93,6 +95,7 @@ public class CitasEventConsumer {
                     .rutPaciente(evento.getRutPaciente())
                     .nombrePaciente(evento.getNombrePaciente())
                     .citaId(evento.getCitaId())
+                    .especialidad(evento.getEspecialidad())
                     .mensaje("Cita reprogramada para paciente " + evento.getRutPaciente()
                             + " (nueva fecha: " + evento.getFechaHora() + ").")
                     .sourceEventId(evento.getEventId())

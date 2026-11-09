@@ -19,7 +19,7 @@ import static org.mockito.Mockito.*;
 /**
  * Tests Unitarios del CitaEventoKafkaProducer (EP3 - citas-service como productor).
  * Verifica que al publicar un evento se construya correctamente el CitaEventoDTO
- * y se envíe al tópico correcto usando el RUT del paciente como clave de partición.
+ * y se envíe al tópico correcto usando la especialidad del médico como clave de partición.
  */
 class CitaEventoKafkaProducerTest {
 
@@ -31,7 +31,6 @@ class CitaEventoKafkaProducerTest {
     void setUp() {
         kafkaTemplate = mock(KafkaTemplate.class);
         producer = new CitaEventoKafkaProducer(kafkaTemplate);
-        // El @Value del tópico se inyecta vía reflection en el test unitario
         ReflectionTestUtils.setField(producer, "topicCitasEventos", "telemedicina.citas.eventos");
     }
 
@@ -50,12 +49,12 @@ class CitaEventoKafkaProducerTest {
     }
 
     @Test
-    @DisplayName("1.1 - publicarEvento envía al tópico telemedicina.citas.eventos con la clave = rutPaciente")
-    void publicarEventoEnviaAlTopicCorrecto() {
+    @DisplayName("1.1 - publicarEvento envía al tópico telemedicina.citas.eventos con la clave = especialidad médica")
+    void publicarEventoEnviaAlTopicCorrectoConClaveEspecialidad() {
         producer.publicarEvento(cita(), CitaEventoDTO.EVENTO_CREADA, "PROGRAMADA");
 
         verify(kafkaTemplate, times(1))
-                .send(eq("telemedicina.citas.eventos"), eq("12.345.678-9"), any(CitaEventoDTO.class));
+                .send(eq("telemedicina.citas.eventos"), eq("Medicina General"), any(CitaEventoDTO.class));
     }
 
     @Test
@@ -65,13 +64,14 @@ class CitaEventoKafkaProducerTest {
 
         producer.publicarEvento(cita(), CitaEventoDTO.EVENTO_CANCELADA, "CANCELADA");
 
-        verify(kafkaTemplate).send(eq("telemedicina.citas.eventos"), eq("12.345.678-9"), captor.capture());
+        verify(kafkaTemplate).send(eq("telemedicina.citas.eventos"), eq("Medicina General"), captor.capture());
         CitaEventoDTO dto = captor.getValue();
 
         assertEquals("CITA_CANCELADA", dto.getEventType());
         assertEquals(42L, dto.getCitaId());
         assertEquals("12.345.678-9", dto.getRutPaciente());
         assertEquals("María González", dto.getNombrePaciente());
+        assertEquals("Medicina General", dto.getEspecialidad());
         assertEquals("CANCELADA", dto.getEstado());
         assertNotNull(dto.getEventId(), "Debe generar un eventId único");
         assertNotNull(dto.getTimestamp(), "Debe incluir timestamp");
@@ -84,11 +84,22 @@ class CitaEventoKafkaProducerTest {
 
         producer.publicarEvento(cita(), CitaEventoDTO.EVENTO_REPROGRAMADA, "REPROGRAMADA");
 
-        verify(kafkaTemplate).send(eq("telemedicina.citas.eventos"), eq("12.345.678-9"), captor.capture());
+        verify(kafkaTemplate).send(eq("telemedicina.citas.eventos"), eq("Medicina General"), captor.capture());
         CitaEventoDTO dto = captor.getValue();
 
         assertFalse(dto.getEventId().isBlank(), "eventId no debe estar vacío");
         assertFalse(dto.getTimestamp().isBlank(), "timestamp no debe estar vacío");
         assertEquals("2026-11-05T10:30:00", dto.getFechaHora(), "fechaHora debe estar en formato ISO-8601");
+    }
+
+    @Test
+    @DisplayName("1.4 - Si especialidad es nula o vacía, usa fallback MEDICINA_GENERAL como key")
+    void publicarEventoUsaFallbackCuandoEspecialidadEsNula() {
+        Cita citaSinEsp = cita();
+        citaSinEsp.setEspecialidad(null);
+
+        producer.publicarEvento(citaSinEsp, CitaEventoDTO.EVENTO_CREADA, "PROGRAMADA");
+
+        verify(kafkaTemplate).send(eq("telemedicina.citas.eventos"), eq("MEDICINA_GENERAL"), any(CitaEventoDTO.class));
     }
 }

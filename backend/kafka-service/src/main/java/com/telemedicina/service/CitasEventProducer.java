@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
  * Se usa desde el controlador de simulación/demo para inyectar eventos de citas
  * y verificar el flujo completo (citas -> alertas) desde el frontend.
  * En producción, el productor real reside en citas-service.
+ *
+ * Utiliza la especialidad médica como clave de particionamiento Kafka.
  */
 @Service
 public class CitasEventProducer {
@@ -23,7 +25,7 @@ public class CitasEventProducer {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    @Value("${app.kafka.topics.citas-eventos:telemedicina.citas.eventos}")
+    @Value("${app.kafka.topics.citas-eventos.name:${app.kafka.topics.citas-eventos:telemedicina.citas.eventos}}")
     private String topicCitasEventos;
 
     @Autowired
@@ -31,11 +33,15 @@ public class CitasEventProducer {
         this.kafkaTemplate = kafkaTemplate;
     }
 
-    /** Publica un evento de cita usando el RUT del paciente como clave de partición. */
+    /** Publica un evento de cita usando la especialidad del médico como clave de partición. */
     public void publicarEvento(CitaEventoDTO evento) {
-        log.info("[KAFKA PRODUCTOR CITAS] Publicando evento tipo='{}' citaId='{}' -> topic='{}'",
-                evento.getEventType(), evento.getCitaId(), topicCitasEventos);
-        kafkaTemplate.send(topicCitasEventos, evento.getRutPaciente(), evento);
-        log.info("[✓] Evento publicado exitosamente: eventId='{}'", evento.getEventId());
+        String partitionKey = (evento.getEspecialidad() != null && !evento.getEspecialidad().isBlank())
+                ? evento.getEspecialidad().trim()
+                : "MEDICINA_GENERAL";
+
+        log.info("[KAFKA PRODUCTOR CITAS] Publicando evento tipo='{}' citaId='{}' key(especialidad)='{}' -> topic='{}'",
+                evento.getEventType(), evento.getCitaId(), partitionKey, topicCitasEventos);
+        kafkaTemplate.send(topicCitasEventos, partitionKey, evento);
+        log.info("[✓] Evento publicado exitosamente: eventId='{}' key='{}'", evento.getEventId(), partitionKey);
     }
 }

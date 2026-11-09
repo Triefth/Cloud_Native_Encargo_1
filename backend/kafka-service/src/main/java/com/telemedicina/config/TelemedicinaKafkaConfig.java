@@ -39,6 +39,8 @@ import java.util.Map;
  * para el dominio de telemedicina (EP3).
  *
  * Cubre la rúbrica de Evaluación Parcial N°3:
+ *  - Centralización de propiedades de tópicos en application.yml evitando cadenas hardcoded.
+ *  - Declaración explícita de beans NewTopic con TopicBuilder (3 particiones, 1 réplica, retención).
  *  - Configuración completa del cliente Kafka (bootstrap servers, serializers,
  *    consumer groups, propiedades avanzadas, particiones y réplicas).       (12%)
  *  - Parámetros de administración de tópicos (retención, cleanup policy).   (12%)
@@ -52,14 +54,41 @@ public class TelemedicinaKafkaConfig {
     @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
 
-    @Value("${app.kafka.topics.citas-eventos:telemedicina.citas.eventos}")
+    @Value("${app.kafka.topics.citas-eventos.name:${app.kafka.topics.citas-eventos:telemedicina.citas.eventos}}")
     private String topicCitasEventos;
 
-    @Value("${app.kafka.topics.alertas:telemedicina.alertas}")
+    @Value("${app.kafka.topics.citas-eventos.partitions:3}")
+    private int citasEventosPartitions;
+
+    @Value("${app.kafka.topics.citas-eventos.replicas:1}")
+    private int citasEventosReplicas;
+
+    @Value("${app.kafka.topics.citas-eventos.retention-ms:604800000}")
+    private String citasEventosRetentionMs;
+
+    @Value("${app.kafka.topics.alertas.name:${app.kafka.topics.alertas:telemedicina.alertas}}")
     private String topicAlertas;
 
-    @Value("${app.kafka.topics.notificaciones:telemedicina.notificaciones}")
+    @Value("${app.kafka.topics.alertas.partitions:3}")
+    private int alertasPartitions;
+
+    @Value("${app.kafka.topics.alertas.replicas:1}")
+    private int alertasReplicas;
+
+    @Value("${app.kafka.topics.alertas.retention-ms:604800000}")
+    private String alertasRetentionMs;
+
+    @Value("${app.kafka.topics.notificaciones.name:${app.kafka.topics.notificaciones:telemedicina.notificaciones}}")
     private String topicNotificaciones;
+
+    @Value("${app.kafka.topics.notificaciones.partitions:3}")
+    private int notificacionesPartitions;
+
+    @Value("${app.kafka.topics.notificaciones.replicas:1}")
+    private int notificacionesReplicas;
+
+    @Value("${app.kafka.topics.notificaciones.retention-ms:604800000}")
+    private String notificacionesRetentionMs;
 
     // ─────────────────────────────────────────────────────────────────────
     // 1. PRODUCTOR JSON (idempotente, acks=all, retries)
@@ -70,41 +99,51 @@ public class TelemedicinaKafkaConfig {
         config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+
+        // JSON portable (sin type headers)
         config.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);
+
+        // Idempotencia y durabilidad
         config.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
         config.put(ProducerConfig.ACKS_CONFIG, "all");
         config.put(ProducerConfig.RETRIES_CONFIG, 3);
+        config.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 1);
+
         return new DefaultKafkaProducerFactory<>(config);
     }
 
     @Bean(name = "telemedicinaKafkaTemplate")
-    public KafkaTemplate<String, Object> telemedicinaKafkaTemplate(
-            @Qualifier("telemedicinaProducerFactory") ProducerFactory<String, Object> producerFactory) {
-        return new KafkaTemplate<>(producerFactory);
+    public KafkaTemplate<String, Object> telemedicinaKafkaTemplate() {
+        return new KafkaTemplate<>(telemedicinaProducerFactory());
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // 2. RECOVERER + GESTOR DE ERRORES (Dead Letter Topic con backoff exponencial)
+    // 2. ERROR HANDLER + DEAD LETTER TOPIC (DLT) CON EXPONENTIAL BACKOFF
     // ─────────────────────────────────────────────────────────────────────
-    @Bean
-    public DeadLetterPublishingRecoverer telemedicinaDeadLetterRecoverer(
-            @Qualifier("telemedicinaKafkaTemplate") KafkaTemplate<String, Object> template) {
-        return new DeadLetterPublishingRecoverer(template,
-                (record, ex) -> new TopicPartition(record.topic() + ".DLT", record.partition()));
-    }
-
-    @Bean
+    @Bean(name = "telemedicinaErrorHandler")
     public DefaultErrorHandler telemedicinaErrorHandler(
-            @Qualifier("telemedicinaDeadLetterRecoverer") DeadLetterPublishingRecoverer telemedicinaDeadLetterRecoverer) {
+            @Qualifier("telemedicinaKafkaTemplate") KafkaTemplate<String, Object> template) {
+
+        DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
+                template,
+                (record, ex) -> {
+                    String dltTopic = record.topic() + ".DLT";
+                    return new TopicPartition(dltTopic, record.partition());
+                }
+        );
+
+        // 3 reintentos con backoff exponencial (1s, 2s, 4s)
         ExponentialBackOff backOff = new ExponentialBackOff(1000L, 2.0);
-        backOff.setMaxElapsedTime(6000L);
-        DefaultErrorHandler handler = new DefaultErrorHandler(telemedicinaDeadLetterRecoverer, backOff);
+        backOff.setMaxElapsedTime(10000L);
+        backOff.setMaxInterval(4000L);
+
+        DefaultErrorHandler handler = new DefaultErrorHandler(recoverer, backOff);
         handler.addNotRetryableExceptions(IllegalArgumentException.class);
         return handler;
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // 3. CONSUMIDOR CITAS
+    // 3. CONSUMIDOR CITAS EVENTOS
     // ─────────────────────────────────────────────────────────────────────
     @Bean
     public ConsumerFactory<String, CitaEventoDTO> telemedicinaCitasConsumerFactory() {
@@ -113,6 +152,7 @@ public class TelemedicinaKafkaConfig {
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "telemedicina-citas-group");
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
+        // ErrorHandlingDeserializer previene envenenamiento de cola
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
         props.put(ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS, StringDeserializer.class);
@@ -203,31 +243,22 @@ public class TelemedicinaKafkaConfig {
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // 6. ADMIN (KafkaAdmin + AdminClient) para microservicio administrador
+    // 6. ADMIN CLIENT
     // ─────────────────────────────────────────────────────────────────────
     @Bean
-    public KafkaAdmin telemedicinaKafkaAdmin() {
-        Map<String, Object> configs = new HashMap<>();
-        configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        return new KafkaAdmin(configs);
-    }
-
-    @Bean
-    public AdminClient telemedicinaAdminClient() {
-        Map<String, Object> configs = new HashMap<>();
-        configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        return AdminClient.create(configs);
+    public AdminClient telemedicinaAdminClient(KafkaAdmin kafkaAdmin) {
+        return AdminClient.create(kafkaAdmin.getConfigurationProperties());
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // 7. DECLARACIÓN DE TÓPICOS
+    // 7. DECLARACIÓN EXPLÍCITA DE TÓPICOS MEDIANTE BEANS (Pauta Duoc UC)
     // ─────────────────────────────────────────────────────────────────────
     @Bean
     public NewTopic citasEventosTopic() {
         return TopicBuilder.name(topicCitasEventos)
-                .partitions(3)
-                .replicas(1)
-                .config(TopicConfig.RETENTION_MS_CONFIG, "604800000")  // 7 días
+                .partitions(citasEventosPartitions)
+                .replicas(citasEventosReplicas)
+                .config(TopicConfig.RETENTION_MS_CONFIG, citasEventosRetentionMs)
                 .config(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE)
                 .build();
     }
@@ -235,18 +266,18 @@ public class TelemedicinaKafkaConfig {
     @Bean
     public NewTopic citasEventosDltTopic() {
         return TopicBuilder.name(topicCitasEventos + ".DLT")
-                .partitions(3)
-                .replicas(1)
-                .config(TopicConfig.RETENTION_MS_CONFIG, "604800000")
+                .partitions(citasEventosPartitions)
+                .replicas(citasEventosReplicas)
+                .config(TopicConfig.RETENTION_MS_CONFIG, citasEventosRetentionMs)
                 .build();
     }
 
     @Bean
     public NewTopic alertasTopic() {
         return TopicBuilder.name(topicAlertas)
-                .partitions(3)
-                .replicas(1)
-                .config(TopicConfig.RETENTION_MS_CONFIG, "604800000")
+                .partitions(alertasPartitions)
+                .replicas(alertasReplicas)
+                .config(TopicConfig.RETENTION_MS_CONFIG, alertasRetentionMs)
                 .config(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE)
                 .build();
     }
@@ -254,18 +285,18 @@ public class TelemedicinaKafkaConfig {
     @Bean
     public NewTopic alertasDltTopic() {
         return TopicBuilder.name(topicAlertas + ".DLT")
-                .partitions(3)
-                .replicas(1)
-                .config(TopicConfig.RETENTION_MS_CONFIG, "604800000")
+                .partitions(alertasPartitions)
+                .replicas(alertasReplicas)
+                .config(TopicConfig.RETENTION_MS_CONFIG, alertasRetentionMs)
                 .build();
     }
 
     @Bean
     public NewTopic notificacionesTopic() {
         return TopicBuilder.name(topicNotificaciones)
-                .partitions(3)
-                .replicas(1)
-                .config(TopicConfig.RETENTION_MS_CONFIG, "604800000")
+                .partitions(notificacionesPartitions)
+                .replicas(notificacionesReplicas)
+                .config(TopicConfig.RETENTION_MS_CONFIG, notificacionesRetentionMs)
                 .config(TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE)
                 .build();
     }
@@ -273,9 +304,9 @@ public class TelemedicinaKafkaConfig {
     @Bean
     public NewTopic notificacionesDltTopic() {
         return TopicBuilder.name(topicNotificaciones + ".DLT")
-                .partitions(3)
-                .replicas(1)
-                .config(TopicConfig.RETENTION_MS_CONFIG, "604800000")
+                .partitions(notificacionesPartitions)
+                .replicas(notificacionesReplicas)
+                .config(TopicConfig.RETENTION_MS_CONFIG, notificacionesRetentionMs)
                 .build();
     }
 }

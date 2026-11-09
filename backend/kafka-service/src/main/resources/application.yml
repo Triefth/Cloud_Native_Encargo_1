@@ -26,11 +26,27 @@ spring:
         default.value.serde: org.springframework.kafka.support.serializer.JsonSerde
         spring.json.trusted.packages: "*"
 
+# =====================================================================
+# Centralización de Nombres de Tópicos, Particiones y Réplicas (EP3 Duoc UC)
+# =====================================================================
 app:
   kafka:
     topics:
-      citas-eventos: ${APP_KAFKA_TOPIC_CITAS_EVENTOS:telemedicina.citas.eventos}
-      alertas: ${APP_KAFKA_TOPIC_ALERTAS:telemedicina.alertas}
+      citas-eventos:
+        name: ${APP_KAFKA_TOPIC_CITAS_EVENTOS:telemedicina.citas.eventos}
+        partitions: ${APP_KAFKA_CITAS_PARTITIONS:3}
+        replicas: ${APP_KAFKA_CITAS_REPLICAS:1}
+        retention-ms: ${APP_KAFKA_CITAS_RETENTION:604800000}
+      alertas:
+        name: ${APP_KAFKA_TOPIC_ALERTAS:telemedicina.alertas}
+        partitions: ${APP_KAFKA_ALERTAS_PARTITIONS:3}
+        replicas: ${APP_KAFKA_ALERTAS_REPLICAS:1}
+        retention-ms: ${APP_KAFKA_ALERTAS_RETENTION:604800000}
+      notificaciones:
+        name: ${APP_KAFKA_TOPIC_NOTIFICACIONES:telemedicina.notificaciones}
+        partitions: ${APP_KAFKA_NOTIFICACIONES_PARTITIONS:3}
+        replicas: ${APP_KAFKA_NOTIFICACIONES_REPLICAS:1}
+        retention-ms: ${APP_KAFKA_NOTIFICACIONES_RETENTION:604800000}
 
 kafka:
   bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}}

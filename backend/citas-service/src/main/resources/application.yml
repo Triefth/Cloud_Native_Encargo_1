@@ -34,12 +34,17 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
 # =====================================================================
-# Centralización de Nombres de Colas y Exchanges (Pauta Duoc UC EP2 12%)
+# Centralización de Nombres de Colas, Exchanges y Tópicos (Duoc UC)
 # =====================================================================
 app:
   kafka:
     topic:
       citas-eventos: ${APP_KAFKA_TOPIC_CITAS_EVENTOS:telemedicina.citas.eventos}
+    topics:
+      citas-eventos:
+        name: ${APP_KAFKA_TOPIC_CITAS_EVENTOS:telemedicina.citas.eventos}
+        partitions: ${APP_KAFKA_CITAS_PARTITIONS:3}
+        replicas: ${APP_KAFKA_CITAS_REPLICAS:1}
   rabbitmq:
     queues:
       citas: ${APP_QUEUE_CITAS:citas.queue}

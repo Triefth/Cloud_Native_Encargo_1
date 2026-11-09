@@ -1,11 +1,13 @@
 package cl.duoc.telemedicina.citas.config;
 
 import cl.duoc.telemedicina.citas.dto.CitaEventoDTO;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
@@ -17,14 +19,36 @@ import java.util.Map;
 /**
  * KafkaProducerConfig — Configuración del cliente productor Kafka de citas-service.
  *
- * Publica eventos JSON (CitaEventoDTO) en el tópico telemedicina.citas.eventos
- * con idempotencia (acks=all, retries) para entrega confiable.
+ * Cumple con Pauta Duoc UC EP3:
+ *  - Centralización de propiedades de tópicos en application.yml evitando cadenas hardcoded.
+ *  - Declaración explícita de beans NewTopic con TopicBuilder (3 particiones, 1 réplica).
+ *  - Publica eventos JSON (CitaEventoDTO) con idempotencia (acks=all, retries) para entrega confiable.
  */
 @Configuration
 public class KafkaProducerConfig {
 
     @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
+
+    @Value("${app.kafka.topics.citas-eventos.name:${app.kafka.topic.citas-eventos:telemedicina.citas.eventos}}")
+    private String topicCitasEventos;
+
+    @Value("${app.kafka.topics.citas-eventos.partitions:3}")
+    private int citasEventosPartitions;
+
+    @Value("${app.kafka.topics.citas-eventos.replicas:1}")
+    private int citasEventosReplicas;
+
+    /**
+     * Declara explícitamente el tópico en Kafka con 3 particiones y 1 réplica al arrancar Spring.
+     */
+    @Bean
+    public NewTopic citasEventosTopic() {
+        return TopicBuilder.name(topicCitasEventos)
+                .partitions(citasEventosPartitions)
+                .replicas(citasEventosReplicas)
+                .build();
+    }
 
     @Bean
     public ProducerFactory<String, CitaEventoDTO> citaEventoProducerFactory() {

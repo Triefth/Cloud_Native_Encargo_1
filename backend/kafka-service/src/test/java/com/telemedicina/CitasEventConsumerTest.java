@@ -24,7 +24,6 @@ class CitasEventConsumerTest {
 
     @BeforeEach
     void setUp() {
-        // AlertaProducer mockeado: el foco del test es la decisión de negocio (¿generar alerta?)
         consumer = new CitasEventConsumer(mock(AlertaProducer.class));
     }
 
@@ -37,6 +36,7 @@ class CitasEventConsumerTest {
                 .nombrePaciente("María González")
                 .rutMedico("11.111.111-1")
                 .nombreMedico("Dr. Pérez")
+                .especialidad("Cardiología")
                 .estado(eventType.replace("CITA_", ""))
                 .fechaHora("2026-11-05T10:30:00")
                 .timestamp("2026-11-02T17:00:00Z")
@@ -58,7 +58,7 @@ class CitasEventConsumerTest {
     }
 
     @Test
-    @DisplayName("2.1 - CITA_CANCELADA genera alerta de severidad ALTA")
+    @DisplayName("2.1 - CITA_CANCELADA genera alerta de severidad ALTA propagando la especialidad médica")
     void citaCanceladaGeneraAlertaAlta() {
         Optional<AlertaClinicaDTO> alerta = consumer.procesarEvento(evento(CitaEventoDTO.EVENTO_CANCELADA));
 
@@ -67,19 +67,21 @@ class CitasEventConsumerTest {
         assertEquals(AlertaClinicaDTO.SEVERIDAD_ALTA, alerta.get().getSeveridad());
         assertEquals("12.345.678-9", alerta.get().getRutPaciente());
         assertEquals(42L, alerta.get().getCitaId());
+        assertEquals("Cardiología", alerta.get().getEspecialidad(), "Debe conservar la especialidad para la key de Kafka");
         assertEquals("evt-1", alerta.get().getSourceEventId(), "Debe conservar trazabilidad hacia el evento origen");
         assertNotNull(alerta.get().getAlertaId(), "La alerta debe tener un id único");
         assertNotNull(alerta.get().getTimestamp(), "La alerta debe tener timestamp");
     }
 
     @Test
-    @DisplayName("2.2 - CITA_REPROGRAMADA genera alerta de severidad MEDIA")
+    @DisplayName("2.2 - CITA_REPROGRAMADA genera alerta de severidad MEDIA propagando la especialidad médica")
     void citaReprogramadaGeneraAlertaMedia() {
         Optional<AlertaClinicaDTO> alerta = consumer.procesarEvento(evento(CitaEventoDTO.EVENTO_REPROGRAMADA));
 
         assertTrue(alerta.isPresent(), "Una cita reprogramada debe generar alerta");
         assertEquals(AlertaClinicaDTO.TIPO_REPROGRAMADA, alerta.get().getTipo());
         assertEquals(AlertaClinicaDTO.SEVERIDAD_MEDIA, alerta.get().getSeveridad());
+        assertEquals("Cardiología", alerta.get().getEspecialidad());
         assertTrue(alerta.get().getMensaje().contains("reprogramada"),
                 "El mensaje debe indicar que la cita fue reprogramada");
     }
